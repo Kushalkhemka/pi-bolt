@@ -1,0 +1,447 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "scope": "Fresh installed public launcher interactive fullscreen cohorts, not historical direct executable timing",
+  "audit": {
+    "complete": true,
+    "scope": "Independent completed installed M5 launcher cohort audit",
+    "run_sha256": "c4b469631eca2a513267349245785d69f7301c4166f31ca334a9f1eb37f1f698",
+    "statistics_sha256": "d9e7b31b12a7528270163d06fdc3142d43dec578da909f022434c2bc41123e20",
+    "measured": 64,
+    "warmups": 16,
+    "provider_requests": 9600,
+    "read_tools": 4800,
+    "visible_idle_frames": 4800,
+    "pinned_files": 17535,
+    "independent_rehash_unchanged": true,
+    "package_inventory_files": 2447,
+    "package_unchanged": true,
+    "native_release_pair": {
+      "pi-native": {
+        "sha256": "6b472c42e504f173699a8066d34964d7638b6ac5786d671cd1309b9ca2c681be",
+        "bytes": 101417602,
+        "mode": 493
+      },
+      "pi-native.aot": {
+        "sha256": "cb6a7c8d75604afe75a481fed37b978f66bc3e4b427743d06978baa86353dc85",
+        "bytes": 31178752,
+        "mode": 420
+      }
+    },
+    "limits": [
+      "Single M5/macOS27; fresh processes with warm filesystem and existing private published Node compile cache plus two discarded warmups.",
+      "Public launch wall includes launcher shell and two platform/stat child queries; Pi process CPU excludes their child CPU, as the original harness excludes subprocess CPU.",
+      "Installed package includes two worker/Photon portability repairs absent from frozen stable baseline; these paths are not exercised by read-text timing.",
+      "Stable bytecode+JIT has matching final-render/Unicode transforms/profile but older build driver; published Node uses its actual shipping npm bundle without those transforms.",
+      "End-to-end application pipeline comparison, not isolated AOT causal proof or universal fastest claim.",
+      "Deterministic loopback SSE/read tool; remote provider latency, codemode timing and production soak excluded.",
+      "Final synchronized visible idle editor endpoint; later agent_settled work excluded; decimal MB macOS physical footprint.",
+      "Full package, source, binary, manifest, archive, acceptance, symlink, harness and tools pinned; Node cache mutable and separately counted.",
+      "Eight paired randomized measured rounds per separate cohort; no outlier removal or historical pooling."
+    ]
+  },
+  "cohorts": [
+    {
+      "turns": 20,
+      "medians": [
+        {
+          "policy": "node_published_stock",
+          "wall_ms": 1802.1433959984279,
+          "cpu_ms": 1665.5700208333333,
+          "peak_mb": 147.94549999999998,
+          "ready_ms": 741.2357500033977
+        },
+        {
+          "policy": "ours_tier10000",
+          "wall_ms": 944.6473964999313,
+          "cpu_ms": 740.3190625,
+          "peak_mb": 88.925072,
+          "ready_ms": 247.1307914966019
+        },
+        {
+          "policy": "stable_gc2",
+          "wall_ms": 954.1755624995858,
+          "cpu_ms": 1466.1129999999998,
+          "peak_mb": 156.648312,
+          "ready_ms": 215.1433539984282
+        },
+        {
+          "policy": "ours_hybrid",
+          "wall_ms": 964.9183539986552,
+          "cpu_ms": 638.8737916666666,
+          "peak_mb": 61.031324,
+          "ready_ms": 235.24168750009267
+        }
+      ],
+      "comparisons": {
+        "node_published_stock": {
+          "ours_hybrid": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": 46.45718225635043,
+              "paired_bootstrap_95_percent": [
+                38.67838975056643,
+                50.385547432378196
+              ],
+              "candidate_median": 964.9183539986552,
+              "reference_median": 1802.1433959984279,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": 61.642333635002664,
+              "paired_bootstrap_95_percent": [
+                59.69494599723993,
+                64.1634982378863
+              ],
+              "candidate_median": 638.8737916666666,
+              "reference_median": 1665.5700208333333,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": 58.74742793799068,
+              "paired_bootstrap_95_percent": [
+                56.46070644019305,
+                61.43083545787474
+              ],
+              "candidate_median": 61.031324,
+              "reference_median": 147.94549999999998,
+              "paired_rounds": 8
+            }
+          },
+          "ours_tier10000": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": 47.58200714785099,
+              "paired_bootstrap_95_percent": [
+                40.01969589698808,
+                51.57454935876946
+              ],
+              "candidate_median": 944.6473964999313,
+              "reference_median": 1802.1433959984279,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": 55.55160976483013,
+              "paired_bootstrap_95_percent": [
+                52.403140096046386,
+                57.124120885565624
+              ],
+              "candidate_median": 740.3190625,
+              "reference_median": 1665.5700208333333,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": 39.893358027111326,
+              "paired_bootstrap_95_percent": [
+                33.903011080330714,
+                43.0152830832044
+              ],
+              "candidate_median": 88.925072,
+              "reference_median": 147.94549999999998,
+              "paired_rounds": 8
+            }
+          }
+        },
+        "stable_gc2": {
+          "ours_hybrid": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": -1.1258715818425857,
+              "paired_bootstrap_95_percent": [
+                -19.40549262734601,
+                7.288041997503414
+              ],
+              "candidate_median": 964.9183539986552,
+              "reference_median": 954.1755624995858,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": 56.42397334539242,
+              "paired_bootstrap_95_percent": [
+                53.63202603886903,
+                58.39484196158664
+              ],
+              "candidate_median": 638.8737916666666,
+              "reference_median": 1466.1129999999998,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": 61.039271205169456,
+              "paired_bootstrap_95_percent": [
+                58.33113057056896,
+                62.73169706830923
+              ],
+              "candidate_median": 61.031324,
+              "reference_median": 156.648312,
+              "paired_rounds": 8
+            }
+          },
+          "ours_tier10000": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": 0.9985757730678224,
+              "paired_bootstrap_95_percent": [
+                -16.677857108102057,
+                9.997894727217972
+              ],
+              "candidate_median": 944.6473964999313,
+              "reference_median": 954.1755624995858,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": 49.50463828504351,
+              "paired_bootstrap_95_percent": [
+                45.06666307645142,
+                51.23130004303897
+              ],
+              "candidate_median": 740.3190625,
+              "reference_median": 1466.1129999999998,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": 43.232665028653486,
+              "paired_bootstrap_95_percent": [
+                33.88460411168419,
+                45.88424153562954
+              ],
+              "candidate_median": 88.925072,
+              "reference_median": 156.648312,
+              "paired_rounds": 8
+            }
+          }
+        },
+        "ours_hybrid": {
+          "ours_tier10000": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": 2.10079509988802,
+              "paired_bootstrap_95_percent": [
+                -16.696988327277353,
+                16.964167430944745
+              ],
+              "candidate_median": 944.6473964999313,
+              "reference_median": 964.9183539986552,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": -15.878765439522446,
+              "paired_bootstrap_95_percent": [
+                -26.905871796177117,
+                -11.014960535580599
+              ],
+              "candidate_median": 740.3190625,
+              "reference_median": 638.8737916666666,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": -45.70398636608311,
+              "paired_bootstrap_95_percent": [
+                -62.08669538652647,
+                -39.61669442387921
+              ],
+              "candidate_median": 88.925072,
+              "reference_median": 61.031324,
+              "paired_rounds": 8
+            }
+          }
+        }
+      }
+    },
+    {
+      "turns": 100,
+      "medians": [
+        {
+          "policy": "node_published_stock",
+          "wall_ms": 2301.5365624996775,
+          "cpu_ms": 1422.7112083333332,
+          "peak_mb": 288.123028,
+          "ready_ms": 218.11343699664576
+        },
+        {
+          "policy": "ours_tier10000",
+          "wall_ms": 1295.5190624998068,
+          "cpu_ms": 786.88275,
+          "peak_mb": 122.20925199999999,
+          "ready_ms": 79.83112500005518
+        },
+        {
+          "policy": "stable_gc2",
+          "wall_ms": 1364.6780204981042,
+          "cpu_ms": 1166.0424374999998,
+          "peak_mb": 193.6516,
+          "ready_ms": 70.22104150019004
+        },
+        {
+          "policy": "ours_hybrid",
+          "wall_ms": 1384.3773125045118,
+          "cpu_ms": 726.6800416666666,
+          "peak_mb": 91.284416,
+          "ready_ms": 77.74222899752203
+        }
+      ],
+      "comparisons": {
+        "node_published_stock": {
+          "ours_hybrid": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": 39.8498666038591,
+              "paired_bootstrap_95_percent": [
+                36.23066520993291,
+                41.115140709695574
+              ],
+              "candidate_median": 1384.3773125045118,
+              "reference_median": 2301.5365624996775,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": 48.92287082506701,
+              "paired_bootstrap_95_percent": [
+                47.619999896755786,
+                49.8167861368211
+              ],
+              "candidate_median": 726.6800416666666,
+              "reference_median": 1422.7112083333332,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": 68.31755634610366,
+              "paired_bootstrap_95_percent": [
+                65.4257803361471,
+                70.50146100367867
+              ],
+              "candidate_median": 91.284416,
+              "reference_median": 288.123028,
+              "paired_rounds": 8
+            }
+          },
+          "ours_tier10000": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": 43.71068947552346,
+              "paired_bootstrap_95_percent": [
+                40.69066835631465,
+                44.739360419451344
+              ],
+              "candidate_median": 1295.5190624998068,
+              "reference_median": 2301.5365624996775,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": 44.691322779286224,
+              "paired_bootstrap_95_percent": [
+                43.408818715882255,
+                47.9892148268823
+              ],
+              "candidate_median": 786.88275,
+              "reference_median": 1422.7112083333332,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": 57.58435108491224,
+              "paired_bootstrap_95_percent": [
+                55.742259471800004,
+                59.47703252211984
+              ],
+              "candidate_median": 122.20925199999999,
+              "reference_median": 288.123028,
+              "paired_rounds": 8
+            }
+          }
+        },
+        "stable_gc2": {
+          "ours_hybrid": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": -1.443512074680986,
+              "paired_bootstrap_95_percent": [
+                -10.253137390022449,
+                4.36381588172714
+              ],
+              "candidate_median": 1384.3773125045118,
+              "reference_median": 1364.6780204981042,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": 37.67979463726279,
+              "paired_bootstrap_95_percent": [
+                32.81558149762376,
+                39.561806254546305
+              ],
+              "candidate_median": 726.6800416666666,
+              "reference_median": 1166.0424374999998,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": 52.86152244546392,
+              "paired_bootstrap_95_percent": [
+                48.788038020672694,
+                54.72821791886935
+              ],
+              "candidate_median": 91.284416,
+              "reference_median": 193.6516,
+              "paired_rounds": 8
+            }
+          },
+          "ours_tier10000": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": 5.067785731102681,
+              "paired_bootstrap_95_percent": [
+                -0.9350161401081136,
+                11.114552460377148
+              ],
+              "candidate_median": 1295.5190624998068,
+              "reference_median": 1364.6780204981042,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": 32.5168000156941,
+              "paired_bootstrap_95_percent": [
+                29.196458715454565,
+                34.85634362238819
+              ],
+              "candidate_median": 786.88275,
+              "reference_median": 1166.0424374999998,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": 36.892206416058535,
+              "paired_bootstrap_95_percent": [
+                34.905686031696426,
+                37.905839972564124
+              ],
+              "candidate_median": 122.20925199999999,
+              "reference_median": 193.6516,
+              "paired_rounds": 8
+            }
+          }
+        },
+        "ours_hybrid": {
+          "ours_tier10000": {
+            "startup_plus_turns_ms": {
+              "reduction_percent": 6.418643905970212,
+              "paired_bootstrap_95_percent": [
+                1.7948505870423404,
+                12.073908464850803
+              ],
+              "candidate_median": 1295.5190624998068,
+              "reference_median": 1384.3773125045118,
+              "paired_rounds": 8
+            },
+            "cpu_through_turns_ms": {
+              "reduction_percent": -8.28462388966351,
+              "paired_bootstrap_95_percent": [
+                -12.087376752234412,
+                -2.7768418501924463
+              ],
+              "candidate_median": 786.88275,
+              "reference_median": 726.6800416666666,
+              "paired_rounds": 8
+            },
+            "peak_footprint_mb": {
+              "reduction_percent": -33.87745395665345,
+              "paired_bootstrap_95_percent": [
+                -40.44914812423583,
+                -25.31966468179794
+              ],
+              "candidate_median": 122.20925199999999,
+              "reference_median": 91.284416,
+              "paired_rounds": 8
+            }
+          }
+        }
+      }
+    }
+  ]
+}

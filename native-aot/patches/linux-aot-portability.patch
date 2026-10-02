@@ -1,0 +1,58 @@
+--- a/Source/JavaScriptCore/aot/AOTLowerMisc.cpp
++++ b/Source/JavaScriptCore/aot/AOTLowerMisc.cpp
+@@ -601,7 +601,7 @@
+             if (mayBe(candidates, TFinalObject))
+                 passIf(isType(FinalObjectType));
+             // The rest of those that have a type to themselves, if there are few enough that it can be.
+-            if (Type others = candidates & TObject & ~(TFinalObject | TOtherObject); others && std::popcount(others) <= 2) {
++            if (Type others = candidates & TObject & ~(TFinalObject | TOtherObject); others && (std::popcount(static_cast<uint64_t>(others)) + std::popcount(static_cast<uint64_t>(others >> 64))) <= 2) {
+                 for (auto& kind : kindsOfObject) {
+                     if (mayBe(others, kind.type))
+                         passIf(isType(kind.jsType));
+--- a/Source/JavaScriptCore/aot/AOTImage.cpp
++++ b/Source/JavaScriptCore/aot/AOTImage.cpp
+@@ -89,6 +89,10 @@
+     mix(1 | MacroAssemblerARM64::supportsDoubleToInt32ConversionUsingJavaScriptSemantics() << 8);
+ #elif CPU(X86_64)
+     mix(2);
++#endif
++#if OS(LINUX)
++    mix(0x4c494e55585f4142ULL); // Linux native C calling convention; distinct from Darwin ARM64.
++    mix(StaticHeap::offsetOfFirstStructureBlock); // Serialized StructureIDs and allocator block layout.
+ #endif
+     return stamp;
+ }
+--- a/Source/JavaScriptCore/heap/StaticHeap.h
++++ b/Source/JavaScriptCore/heap/StaticHeap.h
+@@ -8,9 +8,11 @@
+ #include "CodeSpecializationKind.h"
+ #include "LineColumn.h"
+ #include <bmalloc/StaticRegion.h>
++#include <algorithm>
+ #include <span>
+ #include <wtf/Forward.h>
+ #include <wtf/Function.h>
++#include <wtf/PageBlock.h>
+ #include <wtf/Vector.h>
+ 
+ namespace WTF {
+@@ -144,7 +146,7 @@
+ 
+     // A cell's header identifies its Structure by StructureID, which is an offset into the structure heap. The first VM of a
+     // process creates its initial Structures in a fixed order, in a block at this offset.
+-    static constexpr uint32_t offsetOfFirstStructureBlock = 16 * 1024;
++    static constexpr uint32_t offsetOfFirstStructureBlock = std::max(16 * KB, CeilingOnPageSize);
+ 
+     // Per-function data for FunctionExecutables in the short form. Indexed by AOT::CodeHeader::index.
+     struct RowOfFunction {
+--- a/Source/JavaScriptCore/heap/StructureAlignedMemoryAllocator.cpp
++++ b/Source/JavaScriptCore/heap/StructureAlignedMemoryAllocator.cpp
+@@ -89,6 +89,8 @@
+ }
+ 
+ #if CPU(ADDRESS64)
++static_assert(StaticHeap::offsetOfFirstStructureBlock == MarkedBlock::blockSize);
++
+ #if USE(LIBPAS)
+ 
+ static const bmalloc_type structureHeapType { BMALLOC_TYPE_INITIALIZER(MarkedBlock::blockSize, MarkedBlock::blockSize, "Structure Heap") };

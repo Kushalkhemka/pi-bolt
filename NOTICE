@@ -1,0 +1,8 @@
+Pi-Bolt
+Copyright 2026 Pi-Bolt contributors
+
+Original packaging and integration code is licensed under Apache-2.0.
+Bun, JavaScriptCore/WebKit, Pi, and all third-party dependencies retain their
+original licenses. Changes to upstream files do not replace those licenses.
+Release notice inventories are preserved under licenses/ in binary packages
+and native-aot/release/notices/ in this source project.

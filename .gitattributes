@@ -24,3 +24,11 @@ packages/agent/docs/**/*.diff -whitespace
 *.gz binary
 *.woff binary
 *.woff2 binary
+
+# Pi-Bolt runtime integration
+* text=auto eol=lf
+native-aot/release/notices/** -text -whitespace
+native-aot/patches/** -text -whitespace
+*.wasm -text
+*.node -text
+*.aot -text

@@ -43,3 +43,23 @@ plans/
 .pi/hf-sessions-backup/
 collect.sh
 packages/agent/docs/extensions/pi-server-artifact/index.md
+
+# Pi-Bolt runtime integration
+benchmarks/runtime/node_modules/
+benchmarks/bin/
+benchmarks/state/
+benchmarks/__pycache__/
+native-aot/sources/
+native-aot/__pycache__/
+native-aot/research/*.log
+native-aot/research/*.aot
+native-aot/research/pi-*.js
+native-aot/artifacts/
+native-aot/dist/
+native-aot/**/__pycache__/
+native-aot/pi-1.0-runtime/node_modules/
+native-aot/test-runtime/node_modules/
+native-aot/research/*
+!native-aot/research/pi-v1-v2-workload.order
+*.pyc
+.DS_Store

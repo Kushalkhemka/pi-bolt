@@ -1,0 +1,1716 @@
+diff --git a/Source/JavaScriptCore/Scripts/tests/builtin-source-stamp-unittest.py b/Source/JavaScriptCore/Scripts/tests/builtin-source-stamp-unittest.py
+new file mode 100644
+index 000000000..5425c02ec
+--- /dev/null
++++ b/Source/JavaScriptCore/Scripts/tests/builtin-source-stamp-unittest.py
+@@ -0,0 +1,50 @@
++#!/usr/bin/env python3
++
++import hashlib
++from pathlib import Path
++import re
++import sys
++import unittest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'wkbuiltins'))
++
++from builtins_generate_combined_implementation import BuiltinsCombinedImplementationGenerator
++from builtins_model import BuiltinsCollection
++
++
++class BuiltinSourceStampTests(unittest.TestCase):
++    def generate(self, source):
++        model = BuiltinsCollection(framework_name='JavaScriptCore')
++        model.parse_builtins_file('Stamp.js', '/*\n * Copyright (C) 2026 Apple Inc. All rights reserved.\n * Redistribution\n */\n' + source)
++        output = BuiltinsCombinedImplementationGenerator(model).generate_output()
++        code = re.search(r's_JSCCombinedCode\[\] = \{ (.*?) \};', output).group(1)
++        data = bytes(int(value) for value in code.split(', '))
++        source_hash = int(re.search(r's_JSCCombinedCodeHash = 0x([0-9a-f]+)ULL;', output).group(1), 16)
++        stamp = int(re.search(r's_JSCCombinedCodeStamp = 0x([0-9a-f]+)ULL;', output).group(1), 16)
++        return data, source_hash, stamp
++
++    def test_hashes_exact_emitted_bytes(self):
++        data, source_hash, _ = self.generate('function value() { return "caf\u00e9"; }\n')
++        self.assertIn(233, data)
++        self.assertEqual(source_hash, int.from_bytes(hashlib.sha256(data).digest()[:8], 'big'))
++
++    def test_same_length_edit_changes_stamp(self):
++        before, _, old_stamp = self.generate('function value() { return 17; }\n')
++        after, _, new_stamp = self.generate('function value() { return 19; }\n')
++        self.assertEqual(len(before), len(after))
++        self.assertNotEqual(old_stamp, new_stamp)
++
++    def test_stripped_creation_directive_changes_stamp(self):
++        before, old_hash, old_stamp = self.generate('function value() { return 17; }\n')
++        after, new_hash, new_stamp = self.generate('@alwaysInline\nfunction value() { return 17; }\n')
++        self.assertEqual(before, after)
++        self.assertEqual(old_hash, new_hash)
++        self.assertNotEqual(old_stamp, new_stamp)
++
++    def test_generation_is_reproducible(self):
++        source = 'function value() { return 17; }\n'
++        self.assertEqual(self.generate(source), self.generate(source))
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Combined.js-result b/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Combined.js-result
+index a27c0df00..9d1f30596 100644
+--- a/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Combined.js-result
++++ b/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Combined.js-result
+@@ -49,6 +49,10 @@ extern const char s_JSCCombinedCode[];
+ 
+ extern const unsigned s_JSCCombinedCodeLength;
+ 
++extern const uint64_t s_JSCCombinedCodeHash;
++
++extern const uint64_t s_JSCCombinedCodeStamp;
++
+ /* Builtin.Promise */
+ extern constinit const char* const s_builtinPromiseRejectPromiseCode;
+ extern constinit const int s_builtinPromiseRejectPromiseCodeLength;
+@@ -134,6 +138,10 @@ constinit const char s_JSCCombinedCode[] = { 40, 102, 117, 110, 99, 116, 105, 11
+ 
+ constinit const unsigned s_JSCCombinedCodeLength = 673;
+ 
++constinit const uint64_t s_JSCCombinedCodeHash = 0xb2b345542fd3aabcULL;
++
++constinit const uint64_t s_JSCCombinedCodeStamp = 0x356a90da20462243ULL;
++
+ constinit const JSC::ConstructAbility s_builtinPromiseFulfillPromiseCodeConstructAbility = JSC::ConstructAbility::CannotConstruct;
+ constinit const JSC::ConstructorKind s_builtinPromiseFulfillPromiseCodeConstructorKind = JSC::ConstructorKind::None;
+ constinit const JSC::ImplementationVisibility s_builtinPromiseFulfillPromiseCodeImplementationVisibility = JSC::ImplementationVisibility::Public;
+@@ -164,6 +172,8 @@ static_assert(2 == JSC::numberOfBuiltinCodes);
+ #define DEFINE_BUILTIN_GENERATOR(codeName, functionName, overriddenName, argumentCount) \
+ JSC::FunctionExecutable* codeName##Generator(JSC::VM& vm) \
+ {\
++    if (auto* executable = vm.builtinExecutables()->staticExecutableFor(JSC::BuiltinCodeIndex::codeName, s_##codeName, s_##codeName##Length)) \
++        return executable; \
+     return vm.builtinExecutables()->codeName##Executable()->link(vm, nullptr, vm.builtinExecutables()->codeName##Source(), std::nullopt, s_##codeName##Intrinsic); }
+ JSC_FOREACH_BUILTIN_CODE(DEFINE_BUILTIN_GENERATOR)
+ #undef DEFINE_BUILTIN_GENERATOR
+diff --git a/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Combined.js-result b/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Combined.js-result
+index 2cca3f318..6069f38ba 100644
+--- a/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Combined.js-result
++++ b/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Combined.js-result
+@@ -49,6 +49,10 @@ extern const char s_JSCCombinedCode[];
+ 
+ extern const unsigned s_JSCCombinedCodeLength;
+ 
++extern const uint64_t s_JSCCombinedCodeHash;
++
++extern const uint64_t s_JSCCombinedCodeStamp;
++
+ /* Builtin.prototype */
+ extern constinit const char* const s_builtinPrototypeEveryCode;
+ extern constinit const int s_builtinPrototypeEveryCodeLength;
+@@ -152,6 +156,10 @@ constinit const char s_JSCCombinedCode[] = { 40, 102, 117, 110, 99, 116, 105, 11
+ 
+ constinit const unsigned s_JSCCombinedCodeLength = 3198;
+ 
++constinit const uint64_t s_JSCCombinedCodeHash = 0x8838e43fd248d5acULL;
++
++constinit const uint64_t s_JSCCombinedCodeStamp = 0x7672f40eea558ff1ULL;
++
+ constinit const JSC::ConstructAbility s_builtinPrototypeEveryCodeConstructAbility = JSC::ConstructAbility::CannotConstruct;
+ constinit const JSC::ConstructorKind s_builtinPrototypeEveryCodeConstructorKind = JSC::ConstructorKind::None;
+ constinit const JSC::ImplementationVisibility s_builtinPrototypeEveryCodeImplementationVisibility = JSC::ImplementationVisibility::Public;
+@@ -204,6 +212,8 @@ static_assert(4 == JSC::numberOfBuiltinCodes);
+ #define DEFINE_BUILTIN_GENERATOR(codeName, functionName, overriddenName, argumentCount) \
+ JSC::FunctionExecutable* codeName##Generator(JSC::VM& vm) \
+ {\
++    if (auto* executable = vm.builtinExecutables()->staticExecutableFor(JSC::BuiltinCodeIndex::codeName, s_##codeName, s_##codeName##Length)) \
++        return executable; \
+     return vm.builtinExecutables()->codeName##Executable()->link(vm, nullptr, vm.builtinExecutables()->codeName##Source(), std::nullopt, s_##codeName##Intrinsic); }
+ JSC_FOREACH_BUILTIN_CODE(DEFINE_BUILTIN_GENERATOR)
+ #undef DEFINE_BUILTIN_GENERATOR
+diff --git a/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Combined.js-result b/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Combined.js-result
+index ac7e9470e..ef3365e56 100644
+--- a/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Combined.js-result
++++ b/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Combined.js-result
+@@ -48,6 +48,10 @@ extern const char s_JSCCombinedCode[];
+ 
+ extern const unsigned s_JSCCombinedCodeLength;
+ 
++extern const uint64_t s_JSCCombinedCodeHash;
++
++extern const uint64_t s_JSCCombinedCodeStamp;
++
+ /* BuiltinConstructor */
+ extern constinit const char* const s_builtinConstructorOfCode;
+ extern constinit const int s_builtinConstructorOfCodeLength;
+@@ -132,6 +136,10 @@ constinit const char s_JSCCombinedCode[] = { 40, 102, 117, 110, 99, 116, 105, 11
+ 
+ constinit const unsigned s_JSCCombinedCodeLength = 2340;
+ 
++constinit const uint64_t s_JSCCombinedCodeHash = 0xd538e2c5e6b1385bULL;
++
++constinit const uint64_t s_JSCCombinedCodeStamp = 0x283e2c791c9a3b78ULL;
++
+ constinit const JSC::ConstructAbility s_builtinConstructorFromCodeConstructAbility = JSC::ConstructAbility::CannotConstruct;
+ constinit const JSC::ConstructorKind s_builtinConstructorFromCodeConstructorKind = JSC::ConstructorKind::None;
+ constinit const JSC::ImplementationVisibility s_builtinConstructorFromCodeImplementationVisibility = JSC::ImplementationVisibility::Public;
+@@ -162,6 +170,8 @@ static_assert(2 == JSC::numberOfBuiltinCodes);
+ #define DEFINE_BUILTIN_GENERATOR(codeName, functionName, overriddenName, argumentCount) \
+ JSC::FunctionExecutable* codeName##Generator(JSC::VM& vm) \
+ {\
++    if (auto* executable = vm.builtinExecutables()->staticExecutableFor(JSC::BuiltinCodeIndex::codeName, s_##codeName, s_##codeName##Length)) \
++        return executable; \
+     return vm.builtinExecutables()->codeName##Executable()->link(vm, nullptr, vm.builtinExecutables()->codeName##Source(), std::nullopt, s_##codeName##Intrinsic); }
+ JSC_FOREACH_BUILTIN_CODE(DEFINE_BUILTIN_GENERATOR)
+ #undef DEFINE_BUILTIN_GENERATOR
+diff --git a/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-InternalClashingNames-Combined.js-result b/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-InternalClashingNames-Combined.js-result
+index afb94feb7..584691f03 100644
+--- a/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-InternalClashingNames-Combined.js-result
++++ b/Source/JavaScriptCore/Scripts/tests/builtins/expected/JavaScriptCore-InternalClashingNames-Combined.js-result
+@@ -49,6 +49,10 @@ extern const char s_JSCCombinedCode[];
+ 
+ extern const unsigned s_JSCCombinedCodeLength;
+ 
++extern const uint64_t s_JSCCombinedCodeHash;
++
++extern const uint64_t s_JSCCombinedCodeStamp;
++
+ /* InternalClashingNames */
+ extern constinit const char* const s_internalClashingNamesIsReadableStreamLockedCode;
+ extern constinit const int s_internalClashingNamesIsReadableStreamLockedCodeLength;
+@@ -133,6 +137,10 @@ constinit const char s_JSCCombinedCode[] = { 40, 102, 117, 110, 99, 116, 105, 11
+ 
+ constinit const unsigned s_JSCCombinedCodeLength = 142;
+ 
++constinit const uint64_t s_JSCCombinedCodeHash = 0xc46c2a3012742a76ULL;
++
++constinit const uint64_t s_JSCCombinedCodeStamp = 0x6028c2f1931c5d20ULL;
++
+ constinit const JSC::ConstructAbility s_internalClashingNamesIsReadableStreamLockedCodeConstructAbility = JSC::ConstructAbility::CannotConstruct;
+ constinit const JSC::ConstructorKind s_internalClashingNamesIsReadableStreamLockedCodeConstructorKind = JSC::ConstructorKind::None;
+ constinit const JSC::ImplementationVisibility s_internalClashingNamesIsReadableStreamLockedCodeImplementationVisibility = JSC::ImplementationVisibility::Public;
+@@ -163,6 +171,8 @@ static_assert(2 == JSC::numberOfBuiltinCodes);
+ #define DEFINE_BUILTIN_GENERATOR(codeName, functionName, overriddenName, argumentCount) \
+ JSC::FunctionExecutable* codeName##Generator(JSC::VM& vm) \
+ {\
++    if (auto* executable = vm.builtinExecutables()->staticExecutableFor(JSC::BuiltinCodeIndex::codeName, s_##codeName, s_##codeName##Length)) \
++        return executable; \
+     return vm.builtinExecutables()->codeName##Executable()->link(vm, nullptr, vm.builtinExecutables()->codeName##Source(), std::nullopt, s_##codeName##Intrinsic); }
+ JSC_FOREACH_BUILTIN_CODE(DEFINE_BUILTIN_GENERATOR)
+ #undef DEFINE_BUILTIN_GENERATOR
+diff --git a/Source/JavaScriptCore/Scripts/wkbuiltins/builtins_generate_combined_header.py b/Source/JavaScriptCore/Scripts/wkbuiltins/builtins_generate_combined_header.py
+index 35832781f..8f9546925 100644
+--- a/Source/JavaScriptCore/Scripts/wkbuiltins/builtins_generate_combined_header.py
++++ b/Source/JavaScriptCore/Scripts/wkbuiltins/builtins_generate_combined_header.py
+@@ -64,6 +64,8 @@ class BuiltinsCombinedHeaderGenerator(BuiltinsGenerator):
+         sections.append(Template(Templates.NamespaceTop).substitute(args))
+         sections.append("extern const char s_%(namespace)sCombinedCode[];" % args);
+         sections.append("extern const unsigned s_%(namespace)sCombinedCodeLength;" % args);
++        sections.append("extern const uint64_t s_%(namespace)sCombinedCodeHash;" % args);
++        sections.append("extern const uint64_t s_%(namespace)sCombinedCodeStamp;" % args);
+         for object in self.model().objects:
+             sections.append(self.generate_section_for_object(object))
+         sections.append(self.generate_section_for_code_table_macro())
+diff --git a/Source/JavaScriptCore/Scripts/wkbuiltins/builtins_generate_combined_implementation.py b/Source/JavaScriptCore/Scripts/wkbuiltins/builtins_generate_combined_implementation.py
+index edc9e2d9a..747ed3125 100644
+--- a/Source/JavaScriptCore/Scripts/wkbuiltins/builtins_generate_combined_implementation.py
++++ b/Source/JavaScriptCore/Scripts/wkbuiltins/builtins_generate_combined_implementation.py
+@@ -25,6 +25,8 @@
+ # THE POSSIBILITY OF SUCH DAMAGE.
+ 
+ 
++import hashlib
++import json
+ import logging
+ import re
+ import string
+@@ -61,12 +63,26 @@ class BuiltinsCombinedImplementationGenerator(BuiltinsGenerator):
+         combinedCode = ""
+         combinedCodeOffset = 0
+         function_data = []
++        function_metadata = []
+         for function in self.model().all_functions():
+             data = self.generate_embedded_code_data_for_function(function)
+             combinedCode += data['originalSource']
+             data['embeddedSource'] = "s_%sCombinedCode + %d" % (args['namespace'], combinedCodeOffset)
+             combinedCodeOffset += data['embeddedSourceLength']
+             function_data.append(data)
++            function_metadata.append({
++                'codeName': data['codeName'],
++                'functionName': function.function_name,
++                'overriddenName': function.overridden_name,
++                'argumentCount': len(function.parameters),
++                'linkTimeConstant': function.is_link_time_constant,
++                'constructAbility': data['constructAbility'],
++                'constructorKind': data['constructorKind'],
++                'inlineAttribute': data['inlineAttribute'],
++                'visibility': data['visibility'],
++                'intrinsic': data['intrinsic'],
++                'sourceMetadata': compute_builtin_source_metadata(data['originalSource']),
++            })
+ 
+         combinedCharacters = []
+         for ch in combinedCode:
+@@ -74,6 +90,15 @@ class BuiltinsCombinedImplementationGenerator(BuiltinsGenerator):
+ 
+         sections.append("constinit const char s_%sCombinedCode[] = { %s };" % (args['namespace'], (", ".join(combinedCharacters))))
+         sections.append("constinit const unsigned s_%sCombinedCodeLength = %d;" % (args['namespace'], len(combinedCharacters)))
++        # Hash the exact byte sequence above, including same-length edits that preserve all offsets.
++        source_bytes = bytes(ord(ch) for ch in combinedCode)
++        source_hash = int.from_bytes(hashlib.sha256(source_bytes).digest()[:8], 'big')
++        sections.append("constinit const uint64_t s_%sCombinedCodeHash = 0x%016xULL;" % (args['namespace'], source_hash))
++        # Creation directives are stripped from the source but still change the bytecode and executable.
++        metadata_bytes = json.dumps(function_metadata, sort_keys=True, separators=(',', ':')).encode('utf-8')
++        stamp_input = b'JSC-builtins-sidecar-v1\0' + len(source_bytes).to_bytes(8, 'big') + source_bytes + metadata_bytes
++        source_stamp = int.from_bytes(hashlib.sha256(stamp_input).digest()[:8], 'big')
++        sections.append("constinit const uint64_t s_%sCombinedCodeStamp = 0x%016xULL;" % (args['namespace'], source_stamp))
+ 
+         for data in function_data:
+             sections.append(self.generate_embedded_code_string_section_for_data(data))
+diff --git a/Source/JavaScriptCore/aot/AOTImage.cpp b/Source/JavaScriptCore/aot/AOTImage.cpp
+index bea4646b3..77cfb87dd 100644
+--- a/Source/JavaScriptCore/aot/AOTImage.cpp
++++ b/Source/JavaScriptCore/aot/AOTImage.cpp
+@@ -11,6 +11,7 @@
+ #if ENABLE(FTL_JIT)
+ 
+ #include "AOTCompiler.h"
++#include "BuiltinExecutables.h"
+ #include "CachedTypes.h"
+ #include "CodeBlock.h"
+ #include "CodeCache.h"
+@@ -25,6 +26,7 @@
+ #include "Options.h"
+ #include "ParseInt.h"
+ #include "SourceProvider.h"
++#include <atomic>
+ #include <wtf/FilePrintStream.h>
+ #include <wtf/FileSystem.h>
+ #include <wtf/NeverDestroyed.h>
+@@ -32,7 +34,10 @@
+ #include <wtf/TZoneMallocInlines.h>
+ 
+ #if OS(DARWIN) || OS(LINUX)
++#include <fcntl.h>
+ #include <pthread.h>
++#include <sys/stat.h>
++#include <unistd.h>
+ #include <sys/mman.h>
+ #endif
+ 
+@@ -41,6 +46,16 @@ namespace JSC { namespace AOT {
+ WTF_MAKE_TZONE_ALLOCATED_IMPL(ImageBuilder);
+ WTF_MAKE_TZONE_ALLOCATED_IMPL(Image);
+ 
++static constinit std::atomic<uint64_t> embedderSourceStamp { 0 };
++
++void setEmbedderSourceStamp(uint64_t stamp)
++{
++    RELEASE_ASSERT(stamp);
++    uint64_t expected = 0;
++    if (!embedderSourceStamp.compare_exchange_strong(expected, stamp))
++        RELEASE_ASSERT(expected == stamp);
++}
++
+ uint64_t imageStamp()
+ {
+     // The code has the layout of the engine's objects in it, and the order of the runtime table. Not proof against every change
+@@ -50,10 +65,16 @@ uint64_t imageStamp()
+         stamp = (stamp ^ value) * 0x100000001b3ULL;
+         stamp ^= stamp >> 29;
+     };
++    mix(1); // CachedJSValue atom-literal identity contract.
+     mix(numberOfEntries);
++    mix(BuiltinExecutables::sidecarModuleID);
++    mix(BuiltinExecutables::sidecarSourceStamp());
++    mix(embedderSourceStamp.load());
+     mix(Instance::offsetOfStates());
+     mix(Instance::leastStateWithData);
+     mix(numberOfStubs);
++    mix(numberOfAdapters);
++    mix(sizeof(ImageHeader));
+     mix(numOpcodeIDs);
+     mix(sizeof(VM));
+     mix(sizeof(JSGlobalObject));
+@@ -1201,7 +1222,7 @@ Vector<uint8_t> ImageBuilder::finish()
+         header.returnsIntoAdapters[i] = stubs.returnsIntoAdapters[i];
+     header.hashOfIntrinsics = Options::useImmutableIntrinsics() && ImmutableIntrinsics::shared() ? ImmutableIntrinsics::shared()->hash() : 0;
+     header.dispatchSize = safeCast<uint32_t>(dispatch.size());
+-    header.codeOffset = WTF::roundUpToMultipleOf<imagePageSize>(endOfTables);
++    header.codeOffset = WTF::roundUpToMultipleOf(std::max(imagePageSize, WTF::pageSize()), endOfTables);
+     header.codeSize = codeSize;
+     header.size = WTF::roundUpToMultipleOf<imagePageSize>(header.codeOffset + codeSize);
+     header.numberOfFunctions = m_functions.size();
+@@ -1675,6 +1696,65 @@ uint32_t callSiteAt(const ImageFunction& function, uint32_t offsetOfReturnAddres
+ 
+ Image* Image::registerImageFromFile(const char* path)
+ {
++#if OS(DARWIN) || OS(LINUX)
++    if (Options::useAOTMappedImages()) {
++        int fd = open(path, O_RDONLY | O_CLOEXEC);
++        if (fd < 0)
++            return nullptr;
++        struct stat info;
++        if (fstat(fd, &info) || !S_ISREG(info.st_mode) || info.st_size < static_cast<off_t>(sizeof(ImageHeader))
++            || static_cast<uint64_t>(info.st_size) > std::numeric_limits<size_t>::max() - imagePageSize) {
++            close(fd);
++            return nullptr;
++        }
++        size_t fileSize = static_cast<size_t>(info.st_size);
++        size_t mappedSize = WTF::roundUpToMultipleOf(WTF::pageSize(), fileSize);
++        size_t reservedSize = mappedSize + imagePageSize;
++        // Linux ARM64 may have 4 KB pages. Preserve the format's 16 KB image alignment.
++        void* reservation = mmap(nullptr, reservedSize, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
++        if (reservation == MAP_FAILED) {
++            close(fd);
++            return nullptr;
++        }
++        uintptr_t start = WTF::roundUpToMultipleOf<imagePageSize>(reinterpret_cast<uintptr_t>(reservation));
++        void* mapping = mmap(reinterpret_cast<void*>(start), mappedSize, PROT_READ, MAP_PRIVATE | MAP_FIXED, fd, 0);
++        close(fd);
++        if (mapping == MAP_FAILED) {
++            munmap(reservation, reservedSize);
++            return nullptr;
++        }
++        auto data = std::span { static_cast<const uint8_t*>(mapping), fileSize };
++        const auto& header = *reinterpret_cast<const ImageHeader*>(data.data());
++        if (header.magic != imageMagic || header.stamp != imageStamp() || header.size > fileSize
++            || header.codeOffset < sizeof(ImageHeader) || header.codeOffset > header.size
++            || header.codeSize > header.size - header.codeOffset || header.codeOffset % imagePageSize
++            || header.codeOffset % WTF::pageSize()) {
++            munmap(reservation, reservedSize);
++            return nullptr;
++        }
++        // Metadata remains read-only. Only the code pages are executable; no page is writable.
++        const uint8_t* code = data.data() + header.codeOffset;
++        if (header.codeSize && mprotect(const_cast<uint8_t*>(code), header.codeSize, PROT_READ | PROT_EXEC)) {
++            munmap(reservation, reservedSize);
++            return nullptr;
++        }
++        Image* image = registerImage(data, header.codeSize ? code : nullptr);
++        if (!image) {
++            munmap(reservation, reservedSize);
++            return nullptr;
++        }
++        // Registered images live until process exit, like the copying loader's images.
++        size_t prefix = start - reinterpret_cast<uintptr_t>(reservation);
++        size_t suffix = reservedSize - prefix - mappedSize;
++        if (prefix)
++            munmap(reservation, prefix);
++        if (suffix)
++            munmap(reinterpret_cast<void*>(start + mappedSize), suffix);
++        if (Options::verboseAOTCompilation()) [[unlikely]]
++            dataLogLn("AOT: mapped read-only image ", path, " bytes ", fileSize, " code bytes ", header.codeSize);
++        return image;
++    }
++#endif
+     auto contents = FileSystem::readEntireFile(String::fromUTF8(path));
+     if (!contents)
+         return nullptr;
+@@ -1853,6 +1933,9 @@ std::pair<Image*, const ImageFunction*> Image::find(const ImageKey& key)
+ 
+ uint32_t moduleIDFor(SourceProvider& provider)
+ {
++    // Cached bytecode supplies numeric IDs, but a standalone source image uses hashes.
++    if (Image* image = Image::withCode(); image && image->header().identifiesModulesByText)
++        return moduleIDFromText(provider);
+     if (uint32_t id = provider.aotModuleID())
+         return id;
+     Image* image = Image::withCode();
+@@ -2134,19 +2217,18 @@ private:
+ 
+ } // anonymous namespace
+ 
+-bool aotCompileAndRegisterImage(VM& vm, const SourceCode& source, bool isModule)
++Vector<uint8_t> aotCompileImage(VM& vm, const SourceCode& source, bool isModule, OptimizeBytecode optimize)
+ {
+-    // The runtime supports one image with code per process.
+-    if (!AOT::usesStubs || AOT::Image::withCode())
+-        return false;
++    if (!AOT::usesStubs)
++        return { };
+     Vector<uint8_t> image;
+     {
+         DeferGC deferGC(vm);
+         vm.keepUnlinkedCode();
+         ParserError error;
+         UnlinkedCodeBlock* codeBlock = isModule
+-            ? static_cast<UnlinkedCodeBlock*>(recursivelyGenerateUnlinkedCodeBlockForModuleProgram(vm, source, StrictModeLexicallyScopedFeature, JSParserScriptMode::Module, { }, error, EvalContextType::None))
+-            : static_cast<UnlinkedCodeBlock*>(recursivelyGenerateUnlinkedCodeBlockForProgram(vm, source, NoLexicallyScopedFeatures, JSParserScriptMode::Classic, { }, error, EvalContextType::None));
++            ? static_cast<UnlinkedCodeBlock*>(recursivelyGenerateUnlinkedCodeBlockForModuleProgram(vm, source, StrictModeLexicallyScopedFeature, JSParserScriptMode::Module, { }, error, EvalContextType::None, std::numeric_limits<unsigned>::max(), optimize))
++            : static_cast<UnlinkedCodeBlock*>(recursivelyGenerateUnlinkedCodeBlockForProgram(vm, source, NoLexicallyScopedFeatures, JSParserScriptMode::Classic, { }, error, EvalContextType::None, std::numeric_limits<unsigned>::max(), optimize));
+         if (!error.isValid() && codeBlock) {
+             uint32_t module = AOT::moduleIDFromText(*source.provider());
+             SourceCompiler compiler(vm, module);
+@@ -2156,6 +2238,15 @@ bool aotCompileAndRegisterImage(VM& vm, const SourceCode& source, bool isModule)
+         }
+         vm.stopKeepingUnlinkedCode();
+     }
++    return image;
++}
++
++bool aotCompileAndRegisterImage(VM& vm, const SourceCode& source, bool isModule)
++{
++    // The runtime supports one image with code per process.
++    if (AOT::Image::withCode())
++        return false;
++    auto image = aotCompileImage(vm, source, isModule);
+     return !image.isEmpty() && AOT::Image::registerImageCopyingCode(WTF::move(image));
+ }
+ 
+diff --git a/Source/JavaScriptCore/aot/AOTImage.h b/Source/JavaScriptCore/aot/AOTImage.h
+index cce882109..6e92efda4 100644
+--- a/Source/JavaScriptCore/aot/AOTImage.h
++++ b/Source/JavaScriptCore/aot/AOTImage.h
+@@ -37,7 +37,10 @@ static constexpr size_t imagePageSize = 16 * KB;
+ static constexpr size_t imageFunctionAlignment = sizeof(uint32_t);
+ static constexpr size_t imageStubsAlignment = 16; // Also the alignment of everything else that is not a function.
+ static constexpr unsigned mostCopiesOfStubsInImage = 8;
+-static constexpr unsigned numberOfAdapters = 5;
++// Enter, call/construct and shared call/construct adapters, plus the two
++// optional entry-count tiering adapters. Every adapt() return must be recorded
++// for native stack walking, even when the tiering option is disabled.
++static constexpr unsigned numberOfAdapters = 7;
+ 
+ struct ImageHeader {
+     uint64_t magic;
+diff --git a/Source/JavaScriptCore/aot/AOTOperationsCalls.cpp b/Source/JavaScriptCore/aot/AOTOperationsCalls.cpp
+index bde4c6a12..b2affcfb3 100644
+--- a/Source/JavaScriptCore/aot/AOTOperationsCalls.cpp
++++ b/Source/JavaScriptCore/aot/AOTOperationsCalls.cpp
+@@ -13,6 +13,8 @@
+ #include "AOTInlineCaches.h"
+ #include "AOTOperationHelpers.h"
+ #include "FunctionExecutableInlines.h"
++#include "FunctionCodeBlock.h"
++#include "LLIntEntrypoint.h"
+ #include "Interpreter.h"
+ #include "InterpreterInlines.h"
+ #include "IteratorOperations.h"
+@@ -366,6 +368,23 @@ extern "C" UGPRPair SYSV_ABI findCallTarget(CallFrame* calleeFrame, CallLinkInfo
+             function->replaceExecutable(vm, executable);
+         }
+     }
++    if (Options::useAOTNativeTiering() && Options::useJIT() && executable->hasJITCodeFor(kind)
++        && executable->generatedJITCodeFor(kind)->jitType() == JITType::AOTJIT) {
++        auto& code = static_cast<JITCode&>(executable->generatedJITCodeFor(kind).get());
++        if (code.shouldTier()) {
++            DeferGCForAWhile deferGC(vm);
++            FunctionRef ref { code.instance(), code.index() };
++            ref.ensureData(); // Active native frames keep their own code and metadata after promotion.
++            auto* unlinked = uncheckedDowncast<UnlinkedFunctionCodeBlock>(ref.ensureUnlinkedCodeBlock());
++            FunctionCodeBlock* block = FunctionCodeBlock::create(vm, executable, unlinked, function->scopeUnchecked());
++            if (scope.exception()) [[unlikely]]
++                return encodeResult(nullptr, std::bit_cast<void*>(&vm));
++            LLInt::setEntrypoint(block);
++            executable->installCode(block);
++            if (Options::verboseAOTCompilation()) [[unlikely]]
++                dataLogLn("AOT: tiered function ", ref.index, " to ordinary bytecode profiling");
++        }
++    }
+     executable->prepareForExecution<FunctionExecutable>(vm, function, function->scopeUnchecked(), kind, *calleeFrame->addressOfCodeBlock());
+     if (scope.exception()) [[unlikely]]
+         return encodeResult(nullptr, std::bit_cast<void*>(&vm));
+diff --git a/Source/JavaScriptCore/aot/AOTRuntime.cpp b/Source/JavaScriptCore/aot/AOTRuntime.cpp
+index 6b48e7b14..6d8b9d922 100644
+--- a/Source/JavaScriptCore/aot/AOTRuntime.cpp
++++ b/Source/JavaScriptCore/aot/AOTRuntime.cpp
+@@ -630,8 +630,21 @@ static void fillInfo(FunctionInfo& info, ScriptExecutable* executable, UnlinkedC
+     info.flags = (code.imageFunction()->hasSiteConstants ? FunctionInfo::hasSiteConstants : FunctionInfo::sitesHaveTheirConstants) | FunctionInfo::slotsAmongFlags(code.numSlots());
+ }
+ 
++static UnlinkedFunctionCodeBlock* unlinkedCodeOfColdFunction(Instance& instance, FunctionExecutable* executable, CodeSpecializationKind kind)
++{
++    // Returning code to the bytecode cache clears the executable's slots even while
++    // FunctionInfo and the suspended native function still refer to the retained block.
++    for (auto& function : instance.collections->functionsWithoutData) {
++        if (function.executable == executable && function.unlinkedCodeBlock->isConstructor() == (kind == CodeSpecializationKind::CodeForConstruct))
++            return uncheckedDowncast<UnlinkedFunctionCodeBlock>(function.unlinkedCodeBlock);
++    }
++    return executable->unlinkedExecutable()->codeBlockIfExists(kind);
++}
++
+ Data* Data::create(Instance& instance, ScriptExecutable* executable, UnlinkedCodeBlock* unlinkedCodeBlock, JITCode& code, CodeBlock* codeBlock)
+ {
++    // Only a static heap can reconstruct missing bytecode from its metadata table.
++    RELEASE_ASSERT(unlinkedCodeBlock || instance.functionMetadataOffsets);
+     VM& vm = *instance.vm;
+     DeferGCForAWhile deferGC(vm);
+     unsigned numSlots = code.numSlots();
+@@ -681,7 +694,7 @@ Data* Instance::ensureData(uint32_t index)
+         return data;
+     const FunctionInfo& info = infos[index];
+     auto* executable = uncheckedDowncast<FunctionExecutable>(info.executable());
+-    UnlinkedFunctionCodeBlock* unlinkedCodeBlock = executable->unlinkedExecutable()->codeBlockIfExists(info.kind());
++    UnlinkedFunctionCodeBlock* unlinkedCodeBlock = unlinkedCodeOfColdFunction(*this, executable, info.kind());
+     // (An executable that was made when the program was built has no way of holding on to one.)
+     Ref<JITCode> code = executable->hasJITCodeFor(info.kind()) ? Ref { static_cast<JITCode&>(executable->generatedJITCodeFor(info.kind()).get()) } : codeOfFunctionFromImage({ &Image::of(*info.function()), info.function() }, info.kind());
+     RELEASE_ASSERT(code->index() == index);
+@@ -848,7 +861,7 @@ UnlinkedCodeBlock* FunctionRef::unlinkedCodeBlockIfExists() const
+ {
+     if (Data* data = dataIfExists(); data && data->unlinkedCodeBlock)
+         return data->unlinkedCodeBlock;
+-    return uncheckedDowncast<FunctionExecutable>(executable())->unlinkedExecutable()->codeBlockIfExists(info().kind());
++    return unlinkedCodeOfColdFunction(*instance, uncheckedDowncast<FunctionExecutable>(executable()), info().kind());
+ }
+ 
+ // As many zeros as any function has bytes of instructions, in memory that is nobody's until somebody reads it.
+@@ -1235,6 +1248,10 @@ bool install(VM& vm, FunctionExecutable* executable, CodeSpecializationKind kind
+         instance.setLinkedWithoutData(index);
+     } else if (!Data::create(instance, executable, unlinkedCodeBlock, code.get()))
+         return false;
++    if (Options::useAOTNativeTiering() && Options::useJIT() && Options::useLLInt() && Options::thresholdForAOTNativeTiering()
++        && unlinkedCodeBlock && !StaticHeap::contains(executable)
++        && !code->imageFunction()->usesStaticImports && !code->imageFunction()->numberOfKnownCallees && !code->imageFunction()->hasInlineFrames)
++        code->enableTiering(kind);
+     executable->installAOTCode(vm, kind, WTF::move(code));
+     return true;
+ }
+@@ -1807,6 +1824,13 @@ JITCode::JITCode(void* code, const ImageFunction& function, Way way)
+ {
+ }
+ 
++void JITCode::enableTiering(CodeSpecializationKind kind)
++{
++    m_entriesUntilTiering = Options::thresholdForAOTNativeTiering();
++    m_tieringEnabled = true;
++    m_addressForCall = CodePtr<JSEntryPtrTag>::fromTaggedPtr(tagCodePtr<JSEntryPtrTag>(addressOfStub(isCall(kind) ? Stub::EnterTieringFunctionForCall : Stub::EnterTieringFunctionForConstruct)));
++}
++
+ JITCode::~JITCode() = default;
+ 
+ CodePtr<JSEntryPtrTag> JITCode::addressForCall(ArityCheckMode)
+diff --git a/Source/JavaScriptCore/aot/AOTRuntime.h b/Source/JavaScriptCore/aot/AOTRuntime.h
+index d96ea043c..abb94b311 100644
+--- a/Source/JavaScriptCore/aot/AOTRuntime.h
++++ b/Source/JavaScriptCore/aot/AOTRuntime.h
+@@ -930,8 +930,15 @@ public:
+     static constexpr ptrdiff_t offsetOfInstance() { return OBJECT_OFFSETOF(JITCode, m_instance); }
+     Instance* instance() const { return m_instance; }
+     void setInstance(Instance& instance) { m_instance = &instance; }
++    void enableTiering(CodeSpecializationKind);
++    bool shouldTier() const { return m_tieringEnabled && !m_entriesUntilTiering; }
++    static constexpr ptrdiff_t offsetOfTieringEnabled() { return OBJECT_OFFSETOF(JITCode, m_tieringEnabled); }
++    static constexpr ptrdiff_t offsetOfEntriesUntilTiering() { return OBJECT_OFFSETOF(JITCode, m_entriesUntilTiering); }
++
+ 
+ private:
++    uint32_t m_entriesUntilTiering { 0 };
++    bool m_tieringEnabled { false };
+     void* m_code;
+     uint64_t m_entry;
+     Instance* m_instance { nullptr };
+diff --git a/Source/JavaScriptCore/aot/AOTStubs.cpp b/Source/JavaScriptCore/aot/AOTStubs.cpp
+index 1b472efc1..87725410e 100644
+--- a/Source/JavaScriptCore/aot/AOTStubs.cpp
++++ b/Source/JavaScriptCore/aot/AOTStubs.cpp
+@@ -36,9 +36,18 @@ using TrustedImm32 = CCallHelpers::TrustedImm32;
+ 
+ #if CPU(ARM64)
+ 
++struct StubGenerationLabels {
++    CCallHelpers::Label labels[numberOfStubs];
++    CCallHelpers::Label callVarargsReturnAddress;
++    CCallHelpers::Label whereCallVarargsIsReturnedTo;
++    CCallHelpers::Label longWayOfWriteBarrier;
++    CCallHelpers::Label longWayOfToBoolean;
++    CCallHelpers::Label startOfCallOfAnyCount;
++};
++static StubGenerationLabels* s_generationLabels;
++
+ // State used while generating the stubs: the offsets of the stubs generated so far, and the calls between stubs, which are linked
+ // at the end.
+-static CCallHelpers::Label s_labels[numberOfStubs];
+ static Vector<std::pair<CCallHelpers::Call, Stub>>* s_callsBetweenStubs;
+ static Vector<CCallHelpers::Label>* s_returnsIntoAdapters;
+ // Places where the address of a location in the stubs must be materialized in a register.
+@@ -48,8 +57,6 @@ struct AddressOfLabel {
+     CCallHelpers::Label target;
+ };
+ static Vector<AddressOfLabel>* s_addressesOfLabels;
+-static CCallHelpers::Label s_callVarargsReturnAddress;
+-static CCallHelpers::Label s_whereCallVarargsIsReturnedTo;
+ 
+ static void callStubFromStub(CCallHelpers& jit, Stub stub)
+ {
+@@ -363,8 +370,6 @@ static void callPreservingRegistersAndReturn(CCallHelpers& jit, Entry operation,
+ 
+ // The slow path of a stub with acceptsOperandInAnyRegister() is shared by all its entry points: by then the operand is in T9. The
+ // entry point for the default register is generated first and contains the slow path.
+-static CCallHelpers::Label s_longWayOfWriteBarrier;
+-static CCallHelpers::Label s_longWayOfToBoolean;
+ 
+ static void generateWriteBarrier(CCallHelpers& jit, GPRReg owner)
+ {
+@@ -378,10 +383,10 @@ static void generateWriteBarrier(CCallHelpers& jit, GPRReg owner)
+     slow.link(&jit);
+     jit.move(owner, T9);
+     if (owner != A0) {
+-        jit.jump().linkTo(s_longWayOfWriteBarrier, &jit);
++        jit.jump().linkTo(s_generationLabels->longWayOfWriteBarrier, &jit);
+         return;
+     }
+-    s_longWayOfWriteBarrier = jit.label();
++    s_generationLabels->longWayOfWriteBarrier = jit.label();
+     callPreservingRegistersAndReturn(jit, Entry::operationAOTWriteBarrier, false, [&] {
+         jit.move(T9, A1);
+         jit.loadPtr(Address(T10, Instance::offsetOfVM()), A0);
+@@ -444,10 +449,10 @@ static void generateToBoolean(CCallHelpers& jit, GPRReg asked)
+     slow.link(&jit);
+     jit.move(asked, T9);
+     if (asked != A0) {
+-        jit.jump().linkTo(s_longWayOfToBoolean, &jit);
++        jit.jump().linkTo(s_generationLabels->longWayOfToBoolean, &jit);
+         return;
+     }
+-    s_longWayOfToBoolean = jit.label();
++    s_generationLabels->longWayOfToBoolean = jit.label();
+     callPreservingRegistersAndReturn(jit, Entry::operationAOTToBoolean, true, [&] {
+         jit.move(T9, A1);
+         jit.loadPtr(Address(T10, Instance::offsetOfGlobalObject()), A0);
+@@ -1343,7 +1348,7 @@ static void callGetter(CCallHelpers& jit, CCallHelpers::JumpList& cannot)
+     jit.move(A0, thisGPR);
+     jit.move(T12, calleeGPR);
+     jit.move(TrustedImm32(0), countGPR);
+-    jit.jump().linkTo(s_labels[static_cast<unsigned>(Stub::Call)], &jit);
++    jit.jump().linkTo(s_generationLabels->labels[static_cast<unsigned>(Stub::Call)], &jit);
+ }
+ 
+ // A0 = the base, an object. uid: the property name (an atom, or a symbol's uid). On a hit in the VM's megamorphic cache, returns
+@@ -1374,7 +1379,7 @@ struct WaysOnOfGetById {
+     CCallHelpers::Label isOfAnotherStructure;
+     CCallHelpers::Label miss;
+ };
+-static WaysOnOfGetById s_waysOnOfGetById[2];
++static WaysOnOfGetById* s_waysOnOfGetById;
+ static WaysOnOfGetById& waysOnOfGetById(Entry operation) { return s_waysOnOfGetById[operation == Entry::operationAOTGetByIdWellKnown]; }
+ 
+ // For acceptsOperandInAnyRegister(): the start of generateGetByIdWith() for a base in another register.
+@@ -1410,7 +1415,7 @@ struct WaysOnOfReadSlot {
+     CCallHelpers::Label isNotThere;
+     CCallHelpers::Label miss;
+ };
+-static WaysOnOfReadSlot s_waysOnOfReadSlot[2][Structure::numberOfSlotsWithFieldIDs];
++static WaysOnOfReadSlot (*s_waysOnOfReadSlot)[Structure::numberOfSlotsWithFieldIDs];
+ 
+ // base: see acceptsOperandInAnyRegister().
+ static void generateReadSlot(CCallHelpers& jit, unsigned slot, bool allowsUndefined, GPRReg base = A0)
+@@ -2239,6 +2244,39 @@ static void generateEnterFunction(CCallHelpers& jit, CodeSpecializationKind kind
+     jit.loadPtr(Address(T11, JITCode::offsetOfEntry()), T11);
+     adapt(jit, T11, T12);
+ }
++static void findTargetAndCall(CCallHelpers&);
++static void loadCalleeOfFrameBeingMadeAndItsVM(CCallHelpers&, GPRReg, GPRReg);
++
++static void generateEnterTieringFunction(CCallHelpers& jit, CodeSpecializationKind kind)
++{
++    jit.loadPtr(slotOfFrameBeingMade(CallFrameSlot::callee), T11);
++    jit.loadPtr(Address(T11, JSFunction::offsetOfExecutableOrRareData()), T11);
++    Jump hasExecutable = jit.branchTestPtr(CCallHelpers::Zero, T11, TrustedImm32(JSFunction::rareDataTag));
++    jit.loadPtr(Address(T11, FunctionRareData::offsetOfExecutable() - JSFunction::rareDataTag), T11);
++    hasExecutable.link(&jit);
++    jit.loadPtr(Address(T11, ExecutableBase::offsetOfJITCodeFor(kind)), T11);
++    // Cached callers may still target this shared adapter after the executable has tiered.
++    CCallHelpers::JumpList slow;
++    slow.append(jit.branchTestPtr(CCallHelpers::Zero, T11));
++    slow.append(jit.branch8(CCallHelpers::NotEqual, Address(T11, JSC::JITCode::offsetOfJITType()), TrustedImm32(static_cast<unsigned>(JITType::AOTJIT))));
++    jit.load32(Address(T11, JITCode::offsetOfEntriesUntilTiering()), T12);
++    slow.append(jit.branchTest32(CCallHelpers::Zero, T12));
++    jit.sub32(TrustedImm32(1), T12);
++    jit.store32(T12, Address(T11, JITCode::offsetOfEntriesUntilTiering()));
++    slow.append(jit.branchTest32(CCallHelpers::Zero, T12));
++    jit.loadPtr(Address(T11, JITCode::offsetOfInstance()), T12);
++    jit.loadPtr(Address(T11, JITCode::offsetOfEntry()), T11);
++    adapt(jit, T11, T12);
++
++    slow.link(&jit);
++    loadCalleeOfFrameBeingMadeAndItsVM(jit, T9, T10);
++    jit.loadPtr(Address(T10, VM::offsetOfAOTRuntimeTable()), T11);
++    jit.loadPtr(Address(T11, static_cast<unsigned>(isCall(kind) ? Entry::CallLinkInfoForCall : Entry::CallLinkInfoForConstruct) * sizeof(void*)), BaselineJITRegisters::Call::callLinkInfoGPR);
++    findTargetAndCall(jit);
++}
++static void generateEnterTieringFunctionForCall(CCallHelpers& jit) { generateEnterTieringFunction(jit, CodeSpecializationKind::CodeForCall); }
++static void generateEnterTieringFunctionForConstruct(CCallHelpers& jit) { generateEnterTieringFunction(jit, CodeSpecializationKind::CodeForConstruct); }
++
+ static void generateEnterFunctionForCall(CCallHelpers& jit) { generateEnterFunction(jit, CodeSpecializationKind::CodeForCall); }
+ static void generateEnterFunctionForConstruct(CCallHelpers& jit) { generateEnterFunction(jit, CodeSpecializationKind::CodeForConstruct); }
+ 
+@@ -2533,6 +2571,13 @@ static void findCodeOfCallee(CCallHelpers& jit, CodeSpecializationKind kind, CCa
+     otherwise.append(jit.branchTestPtr(CCallHelpers::Zero, T11));
+     otherwise.append(jit.branch8(CCallHelpers::NotEqual, Address(T11, JSC::JITCode::offsetOfJITType()), TrustedImm32(static_cast<int32_t>(JITType::AOTJIT))));
+     otherwise.append(jit.branchPtr(CCallHelpers::NotEqual, Address(T11, JITCode::offsetOfInstance()), instanceGPR));
++    Jump untiered = jit.branchTest8(CCallHelpers::Zero, Address(T11, JITCode::offsetOfTieringEnabled()));
++    jit.load32(Address(T11, JITCode::offsetOfEntriesUntilTiering()), T13);
++    otherwise.append(jit.branchTest32(CCallHelpers::Zero, T13));
++    jit.sub32(TrustedImm32(1), T13);
++    jit.store32(T13, Address(T11, JITCode::offsetOfEntriesUntilTiering()));
++    otherwise.append(jit.branchTest32(CCallHelpers::Zero, T13));
++    untiered.link(&jit);
+     jit.load64(Address(T11, JITCode::offsetOfEntry()), T12);
+     isLinked.link(&jit);
+ }
+@@ -2549,7 +2594,6 @@ static void callTheWayTheEngineDoes(CCallHelpers& jit, CodeSpecializationKind ki
+     jit.ret();
+ }
+ 
+-static CCallHelpers::Label s_startOfCallOfAnyCount;
+ 
+ // Function.prototype.call.bind(f) ("uncurryThis"), which lets a program write f(object, ...) for object.f(...) regardless of what
+ // object.f has become. Calls f with the first argument as `this` and the rest as arguments. Without this it would be a call to a
+@@ -2574,10 +2618,10 @@ static void callWhatCallIsBoundTo(CCallHelpers& jit)
+     for (unsigned i = 0; i + 1 < numberOfArgumentGPRs; ++i)
+         jit.move(argumentGPR(i + 1), argumentGPR(i));
+     jit.sub32(TrustedImm32(1), countGPR);
+-    jit.jump().linkTo(s_startOfCallOfAnyCount, &jit);
++    jit.jump().linkTo(s_generationLabels->startOfCallOfAnyCount, &jit);
+     nothingIsPassed.link(&jit);
+     jit.move(CCallHelpers::TrustedImm64(JSValue::ValueUndefined), thisGPR);
+-    jit.jump().linkTo(s_startOfCallOfAnyCount, &jit);
++    jit.jump().linkTo(s_generationLabels->startOfCallOfAnyCount, &jit);
+     isNot.link(&jit);
+ }
+ 
+@@ -2585,7 +2629,7 @@ static void callWhatCallIsBoundTo(CCallHelpers& jit)
+ static void generateCallTo(CCallHelpers& jit, CodeSpecializationKind kind, std::optional<unsigned> count)
+ {
+     if (kind == CodeSpecializationKind::CodeForCall && !count)
+-        s_startOfCallOfAnyCount = jit.label();
++        s_generationLabels->startOfCallOfAnyCount = jit.label();
+     CCallHelpers::JumpList slowCase;
+     findCodeOfCallee(jit, kind, slowCase);
+     Jump takesList = jit.branchTest64(CCallHelpers::NonZero, T12, CCallHelpers::TrustedImm64(1LL << EntryWord::bitOfIsList));
+@@ -2753,7 +2797,7 @@ static void generateCallVarargsTo(CCallHelpers& jit, CodeSpecializationKind kind
+         static_assert(length == argumentGPR(0) && to == argumentGPR(1));
+         jit.move(argumentGPR(1), from);
+         jit.loadPtr(Address(GPRInfo::callFrameRegister), frame);
+-        s_addressesOfLabels->append({ jit.label(), T11, s_whereCallVarargsIsReturnedTo });
++        s_addressesOfLabels->append({ jit.label(), T11, s_generationLabels->whereCallVarargsIsReturnedTo });
+         jit.m_assembler.adr(T11, 0);
+         CCallHelpers::Label again = jit.label();
+         jit.loadPtr(Address(frame, sizeof(void*)), T12);
+@@ -2776,13 +2820,13 @@ static void generateCallVarargsTo(CCallHelpers& jit, CodeSpecializationKind kind
+         none.link(&jit);
+         jit.move(frame, GPRInfo::callFrameRegister);
+         jit.move(to, CCallHelpers::stackPointerRegister);
+-        jit.jump().linkTo(s_callVarargsReturnAddress, &jit);
++        jit.jump().linkTo(s_generationLabels->callVarargsReturnAddress, &jit);
+     } else {
+         if (kind == CodeSpecializationKind::CodeForCall)
+-            s_callVarargsReturnAddress = jit.label();
++            s_generationLabels->callVarargsReturnAddress = jit.label();
+         callStubFromStub(jit, kind == CodeSpecializationKind::CodeForCall ? Stub::CallList : Stub::ConstructList);
+         if (kind == CodeSpecializationKind::CodeForCall)
+-            s_whereCallVarargsIsReturnedTo = jit.label();
++            s_generationLabels->whereCallVarargsIsReturnedTo = jit.label();
+         jit.emitFunctionEpilogue();
+         jit.ret();
+     }
+@@ -3782,7 +3826,15 @@ const StubBlob& stubBlob()
+         blob.construct();
+         CCallHelpers jit;
+ #if CPU(ARM64)
+-        CCallHelpers::Label* labels = s_labels;
++        WaysOnOfGetById getByIdWays[2];
++        WaysOnOfReadSlot readSlotWays[2][Structure::numberOfSlotsWithFieldIDs];
++        s_waysOnOfGetById = getByIdWays;
++        s_waysOnOfReadSlot = readSlotWays;
++        auto clearWays = makeScopeExit([] { s_waysOnOfGetById = nullptr; s_waysOnOfReadSlot = nullptr; });
++        StubGenerationLabels generationLabels;
++        s_generationLabels = &generationLabels;
++        auto clearGenerationLabels = makeScopeExit([] { s_generationLabels = nullptr; });
++        CCallHelpers::Label* labels = s_generationLabels->labels;
+         Vector<std::pair<CCallHelpers::Call, Stub>> callsBetweenStubs;
+         s_callsBetweenStubs = &callsBetweenStubs;
+         Vector<CCallHelpers::Label> returnsIntoAdapters;
+diff --git a/Source/JavaScriptCore/aot/AOTStubs.h b/Source/JavaScriptCore/aot/AOTStubs.h
+index fddb0880c..4e336f8d0 100644
+--- a/Source/JavaScriptCore/aot/AOTStubs.h
++++ b/Source/JavaScriptCore/aot/AOTStubs.h
+@@ -299,6 +299,8 @@ static constexpr unsigned shiftOfGranuleOfCode = 10;
+     v(AheadOfToLowerCase) \
+     v(AheadOfObjectKeysObject) \
+     v(AheadOfValueAdd) \
++    v(EnterTieringFunctionForCall) \
++    v(EnterTieringFunctionForConstruct) \
+ 
+ enum class Stub : uint8_t {
+ #define AOT_DEFINE_STUB(name) name,
+diff --git a/Source/JavaScriptCore/builtins/BuiltinExecutables.cpp b/Source/JavaScriptCore/builtins/BuiltinExecutables.cpp
+index e6cd2429f..fa34feb5e 100644
+--- a/Source/JavaScriptCore/builtins/BuiltinExecutables.cpp
++++ b/Source/JavaScriptCore/builtins/BuiltinExecutables.cpp
+@@ -45,6 +45,12 @@ BuiltinExecutables::BuiltinExecutables(VM& vm)
+     : m_vm(vm)
+     , m_combinedSourceProvider(StringSourceProvider::create(StringImpl::createWithoutCopying({ s_JSCCombinedCode, s_JSCCombinedCodeLength }), { }, String(), SourceTaintedOrigin::Untainted))
+ {
++    m_combinedSourceProvider->setAOTModuleID(sidecarModuleID);
++}
++
++uint64_t BuiltinExecutables::sidecarSourceStamp()
++{
++    return s_JSCCombinedCodeStamp;
+ }
+ 
+ SourceCode BuiltinExecutables::defaultConstructorSourceCode(ConstructorKind constructorKind)
+@@ -341,14 +347,18 @@ UnlinkedFunctionExecutable* BuiltinExecutables::name##Executable() \
+ JSC_FOREACH_BUILTIN_CODE(DEFINE_BUILTIN_EXECUTABLES)
+ #undef DEFINE_BUILTIN_EXECUTABLES
+ 
+-void BuiltinExecutables::forEachOnItsOwn(const Function<void(unsigned index, UnlinkedFunctionExecutable*, const SourceCode&)>& functor)
++void BuiltinExecutables::forEachForImage(bool hasStaticHeap, const Function<void(unsigned index, UnlinkedFunctionExecutable*, const SourceCode&)>& functor)
+ {
+ #define ON_ITS_OWN(name, functionName, overrideName, length) { \
++        if (!hasStaticHeap) { \
++            functor(static_cast<unsigned>(BuiltinCodeIndex::name), name##Executable(), name##Source()); \
++        } else { \
+         SourceCode source = makeSource(StringImpl::createWithoutCopying(std::span { std::bit_cast<const Latin1Character*>(s_##name), static_cast<size_t>(length) }), SourceOrigin(), SourceTaintedOrigin::Untainted); \
+         Identifier executableName = m_vm.propertyNames->builtinNames().functionName##PublicName(); \
+         if (overrideName) \
+             executableName = Identifier::fromString(m_vm, overrideName); \
+         functor(static_cast<unsigned>(BuiltinCodeIndex::name), createExecutable(m_vm, source, executableName, s_##name##ImplementationVisibility, s_##name##ConstructorKind, s_##name##ConstructAbility, s_##name##InlineAttribute, NeedsClassFieldInitializer::No), source); \
++        } \
+     }
+     JSC_FOREACH_BUILTIN_CODE(ON_ITS_OWN)
+ #undef ON_ITS_OWN
+diff --git a/Source/JavaScriptCore/builtins/BuiltinExecutables.h b/Source/JavaScriptCore/builtins/BuiltinExecutables.h
+index 103594d15..e756ff615 100644
+--- a/Source/JavaScriptCore/builtins/BuiltinExecutables.h
++++ b/Source/JavaScriptCore/builtins/BuiltinExecutables.h
+@@ -79,9 +79,10 @@ SourceCode name##Source();
+     JSC_FOREACH_BUILTIN_CODE(EXPOSE_BUILTIN_EXECUTABLES)
+ #undef EXPOSE_BUILTIN_EXECUTABLES
+ 
+-    // ---- With a static heap (see BytecodeLinkEncoder::Impl::addBuiltinsOfEngine()).
+-    // Each with a text of its own, and an executable made from that: not the ones above.
+-    JS_EXPORT_PRIVATE void forEachOnItsOwn(const Function<void(unsigned index, UnlinkedFunctionExecutable*, const SourceCode&)>&);
++    // Static heaps use separate sources; sidecars use the ordinary combined source and its function offsets.
++    JS_EXPORT_PRIVATE void forEachForImage(bool hasStaticHeap, const Function<void(unsigned index, UnlinkedFunctionExecutable*, const SourceCode&)>&);
++    static constexpr uint32_t sidecarModuleID = 0xeb17ffffu;
++    JS_EXPORT_PRIVATE static uint64_t sidecarSourceStamp();
+     std::optional<unsigned> indexOf(UnlinkedFunctionExecutable*) const; // Of one of those above.
+     // What says which of them an entry of a link is.
+     static constexpr unsigned stampOf(unsigned index) { return 0xeb170000u | index; }
+diff --git a/Source/JavaScriptCore/bytecode/CallLinkInfo.cpp b/Source/JavaScriptCore/bytecode/CallLinkInfo.cpp
+index f24bdf71f..6885c76ee 100644
+--- a/Source/JavaScriptCore/bytecode/CallLinkInfo.cpp
++++ b/Source/JavaScriptCore/bytecode/CallLinkInfo.cpp
+@@ -26,6 +26,7 @@
+ #include "config.h"
+ #include "CallLinkInfo.h"
+ 
++#include "AOTImage.h"
+ #include "AOTRuntime.h"
+ #include "StackVisitor.h"
+ 
+@@ -654,7 +655,10 @@ void DirectCallLinkInfo::setCallTarget(CodeBlock* codeBlock, CodeLocationLabel<J
+         }
+ 
+ #if ENABLE(FTL_JIT)
+-        if (codeBlock && codeBlock->jitType() == JITType::AOTJIT)
++        // Generic image functions have no CodeBlock. Their entry adapters still
++        // live outside the fixed JIT pool, so a direct call needs its existing
++        // far-jump bridge even when prepareForExecution() returned no block.
++        if ((codeBlock && codeBlock->jitType() == JITType::AOTJIT) || AOT::Image::containsCode(target.untaggedPtr()))
+             target = CodeLocationLabel<JSEntryPtrTag>(tagCodePtr<JSEntryPtrTag>(AOT::nearCallTargetFor(target.untaggedPtr())));
+ #endif
+         MacroAssembler::repatchNearCall(m_callLocation, target);
+diff --git a/Source/JavaScriptCore/heap/StaticHeap.cpp b/Source/JavaScriptCore/heap/StaticHeap.cpp
+index 96edcf162..eaf2a37b9 100644
+--- a/Source/JavaScriptCore/heap/StaticHeap.cpp
++++ b/Source/JavaScriptCore/heap/StaticHeap.cpp
+@@ -23,6 +23,7 @@
+ #include "UnlinkedFunctionExecutable.h"
+ #include "UnlinkedModuleProgramCodeBlock.h"
+ #include <wtf/BitVector.h>
++#include <wtf/NeverDestroyed.h>
+ #include <sys/mman.h>
+ #include <wtf/text/AtomStringTable.h>
+ #include <wtf/text/SymbolRegistry.h>
+@@ -191,12 +192,25 @@ PreciseAllocation* StaticHeap::containerOfSlow(const void* cell)
+     return PreciseAllocation::containerOfStaticCells();
+ }
+ 
++// Allocated only by the build-time heap exporter, never during ordinary startup.
++struct HeapBuildScratch {
++    Vector<FunctionExecutable*> executables;
++    UncheckedKeyHashSet<void*> cells;
++    Vector<std::span<const WriteBarrier<UnlinkedFunctionExecutable>>> functionLists;
++    Vector<std::pair<void*, size_t>> cellsBeingBuilt[2];
++};
++static HeapBuildScratch& heapBuildScratch()
++{
++    static NeverDestroyed<HeapBuildScratch> scratch;
++    return scratch.get();
++}
++
+ // See retainNeededFunctionData().
+ static bool s_allocatesFunctionsInScratch;
+ static bool s_nextCellIsOfAFunction;
+-static Vector<FunctionExecutable*> s_executablesInScratch;
+-static UncheckedKeyHashSet<void*> s_cellsInScratch;
+-static Vector<std::span<const WriteBarrier<UnlinkedFunctionExecutable>>> s_listsOfFunctionsInFunctions;
++
++
++
+ const StaticHeap::RowOfFunction* StaticHeap::s_rowsOfFunctions;
+ 
+ bool StaticHeap::keepsNothingForGeneratingCode()
+@@ -210,13 +224,13 @@ void StaticHeap::willAllocateUnlinkedFunctionSlow()
+ }
+ 
+ // Where the cells are and how big, for as long as the region is being built. Nothing needs to be told once it is.
+-static Vector<std::pair<void*, size_t>> s_cellsBeingBuilt[2]; // Those of Arena::Cells, and of Arena::MutableCells.
++ // Those of Arena::Cells, and of Arena::MutableCells.
+ 
+ template<typename Functor> static void forEachCell(Region::Arena arena, const Functor& functor)
+ {
+     RELEASE_ASSERT(arena == Region::Arena::Cells || arena == Region::Arena::MutableCells);
+     // (By index: what is done with a cell may make another.)
+-    auto& cells = s_cellsBeingBuilt[arena == Region::Arena::MutableCells];
++    auto& cells = heapBuildScratch().cellsBeingBuilt[arena == Region::Arena::MutableCells];
+     for (size_t i = 0; i < cells.size(); ++i)
+         functor(cells[i].first, cells[i].second);
+ }
+@@ -308,13 +322,13 @@ void* StaticHeap::tryAllocateCellSlow(VM& vm, size_t size)
+     if (std::exchange(s_nextCellIsOfAFunction, false) && s_allocatesFunctionsInScratch) {
+         void* cell = Region::allocate(Region::Arena::Scratch, size, 16, sizeOfCellHeader);
+         Region::AllocationScope notInRegion(false);
+-        s_cellsInScratch.add(cell);
++        heapBuildScratch().cells.add(cell);
+         return cell;
+     }
+     bool isMutable = Region::isAllocatingMutable();
+     void* cell = Region::allocate(isMutable ? Region::Arena::MutableCells : Region::Arena::Cells, size, 16, sizeOfCellHeader);
+     Region::AllocationScope notInRegion(false);
+-    s_cellsBeingBuilt[isMutable].append({ cell, size });
++    heapBuildScratch().cellsBeingBuilt[isMutable].append({ cell, size });
+     return cell;
+ }
+ 
+@@ -763,7 +777,7 @@ static void makeExecutables(VM& vm, UnlinkedCodeBlock* codeBlock, const SourceCo
+         executable = unlinked->link(vm, nullptr, source, std::nullopt, NoIntrinsic, isInsideOrdinaryFunction);
+         if (s_allocatesFunctionsInScratch) {
+             Region::AllocationScope notInRegion(false);
+-            s_executablesInScratch.append(executable);
++            heapBuildScratch().executables.append(executable);
+         }
+         executable->becomeStatic(vm);
+         for (auto kind : { CodeSpecializationKind::CodeForCall, CodeSpecializationKind::CodeForConstruct }) {
+@@ -1045,11 +1059,11 @@ void* StaticHeap::takePlaceForSourceProvider(VM& vm, size_t entryOffset, size_t
+ // The code that a function is in refers to its FunctionExecutable (UnlinkedCodeBlock::executableIn()).
+ void StaticHeap::retainNeededFunctionData(VM& vm, Header& header)
+ {
+-    auto isScratch = [](uintptr_t bits) { return bits - Region::startOf(Region::Arena::Scratch) < Region::used(Region::Arena::Scratch) && s_cellsInScratch.contains(std::bit_cast<void*>(bits)); };
++    auto isScratch = [](uintptr_t bits) { return bits - Region::startOf(Region::Arena::Scratch) < Region::used(Region::Arena::Scratch) && heapBuildScratch().cells.contains(std::bit_cast<void*>(bits)); };
+     auto place = [&](const void* bytes, size_t size) {
+         void* cell = Region::allocate(Region::Arena::Cells, size, 16, sizeOfCellHeader);
+         memcpy(cell, bytes, size);
+-        s_cellsBeingBuilt[0].append({ cell, size });
++        heapBuildScratch().cellsBeingBuilt[0].append({ cell, size });
+         return cell;
+     };
+     UncheckedKeyHashMap<UnlinkedFunctionExecutable*, UnlinkedFunctionExecutable*> kept;
+@@ -1069,7 +1083,7 @@ void StaticHeap::retainNeededFunctionData(VM& vm, Header& header)
+     Vector<FunctionExecutable*> inFull;
+     Structure* structureOfShortForm = vm.shortFunctionExecutableStructure.get();
+     UncheckedKeyHashMap<ASCIILiteral, unsigned> why;
+-    for (auto* executable : s_executablesInScratch) {
++    for (auto* executable : heapBuildScratch().executables) {
+         UnlinkedFunctionExecutable* unlinked = executable->unlinkedExecutable();
+         RELEASE_ASSERT(isScratch(std::bit_cast<uintptr_t>(executable)) && isScratch(std::bit_cast<uintptr_t>(unlinked)));
+         bool hasCodeToCall = executable->aotEntryFor(CodeSpecializationKind::CodeForCall);
+@@ -1099,7 +1113,7 @@ void StaticHeap::retainNeededFunctionData(VM& vm, Header& header)
+             copy = pages + pageSizeOfImage - sizeOfCellHeader - FunctionExecutable::sizeOfShortForm;
+             memcpy(copy, static_cast<const void*>(executable), FunctionExecutable::sizeOfShortForm);
+             memset(copy + FunctionExecutable::sizeOfShortForm, 0xfb, sizeOfCellHeader);
+-            s_cellsBeingBuilt[0].append({ copy, FunctionExecutable::sizeOfShortForm });
++            heapBuildScratch().cellsBeingBuilt[0].append({ copy, FunctionExecutable::sizeOfShortForm });
+         } else
+             copy = static_cast<char*>(place(executable, FunctionExecutable::sizeOfShortForm));
+         *reinterpret_cast<uint32_t*>(copy + JSCell::structureIDOffset()) = structureOfShortForm->id().bits();
+@@ -1186,7 +1200,7 @@ void StaticHeap::retainNeededFunctionData(VM& vm, Header& header)
+     // What is left is the functions in a function that there is no code for, and so no executable, and so no way to get to them.
+     // (Whether anything else refers to what is about to be gone is for whoever checks what cells refer to.)
+     size_t inFunctionsWithoutCode = 0;
+-    for (auto list : s_listsOfFunctionsInFunctions) {
++    for (auto list : heapBuildScratch().functionLists) {
+         for (auto& entry : list) {
+             if (!isScratch(std::bit_cast<uintptr_t>(entry)))
+                 continue;
+@@ -1198,7 +1212,7 @@ void StaticHeap::retainNeededFunctionData(VM& vm, Header& header)
+     for (auto& [reason, count] : why)
+         dataLogLn("StaticHeap:     in full, ", reason, ": ", count);
+     if (Options::verboseAOTCompilation()) [[unlikely]]
+-        dataLogLn("StaticHeap: of ", s_executablesInScratch.size(), " FunctionExecutables ", inShortForm.size(), " are in the short form, with ", shared.size(), " UnlinkedFunctionExecutables between them and ", rows.size_bytes(), " bytes of rows; ", inFull.size(), " are kept in full; ", foundBy, " more UnlinkedFunctionExecutables are kept for what finds a function by one; ", inFunctionsWithoutCode, " functions are in functions that there is no code for");
++        dataLogLn("StaticHeap: of ", heapBuildScratch().executables.size(), " FunctionExecutables ", inShortForm.size(), " are in the short form, with ", shared.size(), " UnlinkedFunctionExecutables between them and ", rows.size_bytes(), " bytes of rows; ", inFull.size(), " are kept in full; ", foundBy, " more UnlinkedFunctionExecutables are kept for what finds a function by one; ", inFunctionsWithoutCode, " functions are in functions that there is no code for");
+ }
+ 
+ // The tables of the variables of scopes are made in Arena::Scratch too (CachedSymbolTable::decode()). By now the names that nothing looks up are gone from them
+@@ -1211,7 +1225,7 @@ static void deduplicateSymbolTables()
+     UncheckedKeyHashMap<uintptr_t, uintptr_t> moved;
+     // (In the order they were made in, so that the same program comes to the same bytes.)
+     Vector<uintptr_t> tables;
+-    for (void* cell : s_cellsInScratch) {
++    for (void* cell : heapBuildScratch().cells) {
+         if (dynamicDowncast<SymbolTable>(static_cast<JSCell*>(cell)))
+             tables.append(std::bit_cast<uintptr_t>(cell));
+     }
+@@ -1221,7 +1235,7 @@ static void deduplicateSymbolTables()
+         moved.add(table, kept.ensure(String { bytes }, [&] {
+             void* cell = Region::allocate(Region::Arena::Cells, sizeof(SymbolTable), 16, StaticHeap::sizeOfCellHeader);
+             memcpy(cell, bytes.data(), bytes.size());
+-            s_cellsBeingBuilt[0].append({ cell, sizeof(SymbolTable) });
++            heapBuildScratch().cellsBeingBuilt[0].append({ cell, sizeof(SymbolTable) });
+             return std::bit_cast<uintptr_t>(cell);
+         }).iterator->value);
+     }
+@@ -1246,13 +1260,13 @@ Vector<uint8_t> StaticHeap::build(VM& vm, std::span<const uint8_t> strings, std:
+     s_identifiersOfProgram = { };
+     s_constantsOfProgram = { };
+     auto forgetCells = makeScopeExit([] {
+-        for (auto& cells : s_cellsBeingBuilt)
++        for (auto& cells : heapBuildScratch().cellsBeingBuilt)
+             cells = { };
+         s_allocatesFunctionsInScratch = false;
+         s_nextCellIsOfAFunction = false;
+-        s_executablesInScratch = { };
+-        s_cellsInScratch = { };
+-        s_listsOfFunctionsInFunctions = { };
++        heapBuildScratch().executables = { };
++        heapBuildScratch().cells = { };
++        heapBuildScratch().functionLists = { };
+         s_rowsOfFunctions = nullptr;
+     });
+     if (positionsToKeep)
+@@ -1440,8 +1454,8 @@ Vector<uint8_t> StaticHeap::build(VM& vm, std::span<const uint8_t> strings, std:
+                                 for (auto kind : { CodeSpecializationKind::CodeForCall, CodeSpecializationKind::CodeForConstruct }) {
+                                     if (auto* code = function->codeBlockIfExists(kind); code && s_allocatesFunctionsInScratch) {
+                                         Region::AllocationScope notInRegion(false);
+-                                        s_listsOfFunctionsInFunctions.append(code->functionDecls());
+-                                        s_listsOfFunctionsInFunctions.append(code->functionExprs());
++                                        heapBuildScratch().functionLists.append(code->functionDecls());
++                                        heapBuildScratch().functionLists.append(code->functionExprs());
+                                     }
+                                     if (auto* code = function->codeBlockIfExists(kind))
+                                         code->leaveToStaticHeap(code->numberOfUnlinkedStringSwitchJumpTables() || code->numberOfConstantIdentifierSets(), !!s_arraysBeingBuilt);
+@@ -1682,6 +1696,8 @@ std::optional<StaticHeap::Copies> StaticHeap::copiesIn(std::span<const uint8_t>
+ 
+ bool StaticHeap::map(std::span<const uint8_t> image, int fileDescriptor, off_t offsetInFile)
+ {
++    // Serialized cells may point directly to the canonical empty StringImpl, bypassing its normal guarded accessors.
++    StringImpl::initializeEmptyString();
+     if (s_header || image.size() < sizeof(Header))
+         return false;
+     auto& header = *reinterpret_cast<const Header*>(image.data());
+@@ -1720,6 +1736,7 @@ bool StaticHeap::map(std::span<const uint8_t> image, int fileDescriptor, off_t o
+ 
+ void StaticHeap::prepareThread()
+ {
++    StringImpl::initializeEmptyString();
+     if (!s_header || !s_vm || t_threadIsPrepared)
+         return;
+     AtomStringTable* atoms = Thread::currentSingleton().atomStringTable();
+diff --git a/Source/JavaScriptCore/jsc.cpp b/Source/JavaScriptCore/jsc.cpp
+index bbfe8ed3e..bad08045c 100644
+--- a/Source/JavaScriptCore/jsc.cpp
++++ b/Source/JavaScriptCore/jsc.cpp
+@@ -459,6 +459,7 @@ static JSC_DECLARE_HOST_FUNCTION(functionFinalizationRegistryDeadCount);
+ static JSC_DECLARE_HOST_FUNCTION(functionIs32BitPlatform);
+ static JSC_DECLARE_HOST_FUNCTION(functionCheckModuleSyntax);
+ static JSC_DECLARE_HOST_FUNCTION(functionAOTCompileAll);
++static JSC_DECLARE_HOST_FUNCTION(functionWriteAOTImage);
+ static JSC_DECLARE_HOST_FUNCTION(functionCheckScriptSyntax);
+ static JSC_DECLARE_HOST_FUNCTION(functionPlatformSupportsSamplingProfiler);
+ static JSC_DECLARE_HOST_FUNCTION(functionGenerateHeapSnapshot);
+@@ -860,6 +861,7 @@ private:
+ 
+         addFunction(vm, "checkModuleSyntax"_s, functionCheckModuleSyntax, 1);
+         addFunction(vm, "aotCompileAll"_s, functionAOTCompileAll, 2);
++        addFunction(vm, "writeAOTImage"_s, functionWriteAOTImage, 3);
+         addFunction(vm, "checkScriptSyntax"_s, functionCheckScriptSyntax, 1);
+ 
+         addFunction(vm, "platformSupportsSamplingProfiler"_s, functionPlatformSupportsSamplingProfiler, 0);
+@@ -3684,6 +3686,31 @@ JSC_DEFINE_HOST_FUNCTION(functionAOTCompileAll, (JSGlobalObject* globalObject, C
+     return JSValue::encode(array);
+ }
+ 
++// Experimental shell exporter: writeAOTImage(path, source, isModule). Does not execute source.
++JSC_DEFINE_HOST_FUNCTION(functionWriteAOTImage, (JSGlobalObject* globalObject, CallFrame* callFrame))
++{
++    VM& vm = globalObject->vm();
++    auto scope = DECLARE_THROW_SCOPE(vm);
++    String path = callFrame->argument(0).toWTFString(globalObject);
++    RETURN_IF_EXCEPTION(scope, encodedJSValue());
++    if (path.isEmpty() || path.contains('\0'))
++        return throwVMTypeError(globalObject, scope, "AOT image path must be nonempty and contain no NUL characters."_s);
++    String source = callFrame->argument(1).toWTFString(globalObject);
++    RETURN_IF_EXCEPTION(scope, encodedJSValue());
++    bool isModule = callFrame->argument(2).toBoolean(globalObject);
++#if ENABLE(FTL_JIT)
++    auto image = aotCompileImage(vm, jscSource(source, { }, String(), TextPosition(), isModule ? SourceProviderSourceType::Module : SourceProviderSourceType::Program), isModule);
++    if (image.isEmpty())
++        return throwVMError(globalObject, scope, "No native AOT image was generated; check source syntax and backend support."_s);
++    auto written = FileSystem::overwriteEntireFile(path, image.span());
++    if (!written || *written != image.size())
++        return throwVMError(globalObject, scope, "Could not write the complete AOT image."_s);
++    return JSValue::encode(jsNumber(image.size()));
++#else
++    return throwVMError(globalObject, scope, "This engine was built without the AOT compiler."_s);
++#endif
++}
++
+ JSC_DEFINE_HOST_FUNCTION(functionCheckScriptSyntax, (JSGlobalObject* globalObject, CallFrame* callFrame))
+ {
+     VM& vm = globalObject->vm();
+diff --git a/Source/JavaScriptCore/runtime/CachedTypes.cpp b/Source/JavaScriptCore/runtime/CachedTypes.cpp
+index 696ac7a73..4fee294ab 100644
+--- a/Source/JavaScriptCore/runtime/CachedTypes.cpp
++++ b/Source/JavaScriptCore/runtime/CachedTypes.cpp
+@@ -1251,6 +1251,16 @@ public:
+         return placement.linkClass;
+     }
+ 
++    // Query the placement already decided for the trained bytecode profile.
++    // Empty names (engine/embedder builtins) and untrained functions have no hot rank.
++    std::optional<uint64_t> hotRankOfLinkedFunction(const UnlinkedFunctionExecutable& executable) const
++    {
++        auto placement = m_link->placements.find(&executable);
++        if (placement == m_link->placements.end() || placement->value.linkClass != LinkClass::Hot)
++            return std::nullopt;
++        return placement->value.rank;
++    }
++
+     void rootUntilLinkEnds(UnlinkedFunctionCodeBlock* codeBlock)
+     {
+         m_link->functionCodeBlocks.append(Strong<UnlinkedFunctionCodeBlock>(m_vm, codeBlock));
+@@ -3291,6 +3301,7 @@ public:
+         RegExp,
+         TemplateObjectDescriptor,
+         BigInt,
++        AtomString,
+     };
+ 
+     Kind encode(Encoder& encoder, JSValue v)
+@@ -3326,18 +3337,19 @@ public:
+             auto str = string->tryGetValue();
+             RELEASE_ASSERT(str.data.impl()); // constants are never unresolved ropes; a failed resolution must not be encoded as garbage
+             StringImpl& impl = *str.data.impl();
++            Kind kind = impl.isAtom() ? Kind::AtomString : Kind::String;
+             if (!encoder.externalStrings() && this->tryEncodeInlineString(impl))
+-                return Kind::String;
++                return kind;
+             if (this->tryEncodeExternalString(encoder, impl))
+-                return Kind::String;
++                return kind;
+             if (auto existing = encoder.cachedOffsetForStringContents(impl)) {
+                 this->pointAtPayloadOffset(encoder, *existing);
+-                return Kind::String;
++                return kind;
+             }
+             auto* record = this->allocateFor<CachedUniquedStringImpl>(encoder, impl);
+             record->encode(encoder, impl);
+             encoder.cacheStringContents(impl, encoder.offsetOf(record));
+-            return Kind::String;
++            return kind;
+         }
+ 
+         if (auto* immutableButterfly = dynamicDowncast<JSCellButterfly>(cell)) {
+@@ -3385,6 +3397,7 @@ public:
+         case Kind::SymbolTable:
+             return this->buffer<CachedSymbolTable>()->decode(decoder);
+         case Kind::String:
++        case Kind::AtomString:
+             if (decoder.isForStaticHeap() && !this->hasExternalString()) [[unlikely]] {
+                 // (Against a table of strings, as here, it is the only one that is not in the table.)
+                 String string = this->hasInlineString() ? String { this->inlineString(decoder) } : this->buffer<CachedUniquedStringImpl>()->decodePlainString(decoder);
+@@ -3393,8 +3406,15 @@ public:
+             }
+             if (this->hasInlineString())
+                 return jsOwnedString(decoder.vm(), String { this->inlineString(decoder) });
+-            if (this->hasExternalString())
++            if (this->hasExternalString()) {
++                // AOT equality and string switches preserve the compiler's atom identity facts.
++                // Promote a shared slot before returning its cell, including one decoded plain earlier.
++                if (kind == Kind::AtomString)
++                    decoder.atomForExternalString(this->externalStringOrdinal());
+                 return decoder.jsStringForExternalString(this->externalStringOrdinal());
++            }
++            if (kind == Kind::AtomString)
++                return jsString(decoder.vm(), String { adoptRef(*static_cast<StringImpl*>(this->buffer<CachedUniquedStringImpl>()->decode(decoder))) });
+             // A constant becomes a JSString; it does not have to be an atom, so skip the atom table.
+             return jsString(decoder.vm(), this->buffer<CachedUniquedStringImpl>()->decodePlainString(decoder));
+         case Kind::ImmutableButterfly:
+@@ -3434,7 +3454,8 @@ struct CachedJSValuePool {
+     static auto stringOrdinals(const uint8_t* pool, unsigned count)
+     {
+         return [pool, slot = slots(pool, count)](unsigned i) {
+-            if (static_cast<CachedJSValue::Kind>(pool[i]) == CachedJSValue::Kind::String && slot[i].hasExternalString())
++            auto kind = static_cast<CachedJSValue::Kind>(pool[i]);
++            if ((kind == CachedJSValue::Kind::String || kind == CachedJSValue::Kind::AtomString) && slot[i].hasExternalString())
+                 return slot[i].externalStringOrdinal();
+             return DecoderStringTable::noOrdinal;
+         };
+@@ -3455,8 +3476,7 @@ struct CachedJSValuePool {
+         const CachedJSValue* slot = slots(pool, count);
+ #if USE(BUN_JSC_ADDITIONS)
+         if (const DecoderStringTable* table = decoder.stringsToPrefetch()) {
+-            // jsStringFor reads the slot and returns the cell it holds without touching it, or else reads the record
+-            // (and the StringImpl an identifier left there, if any): two hops, no atom table.
++            // String constants reuse a slot's cell; atom constants first preserve its canonical impl.
+             decodeWithStringPrefetch<DecoderStringTable::PrefetchFor::JSString>(decoder.vm(), *table, count, head, stringOrdinals(pool, count), [&](unsigned i) {
+                 out[i].set(decoder.vm(), owner, slot[i].decode(decoder, static_cast<CachedJSValue::Kind>(pool[i])));
+             });
+@@ -5583,7 +5603,7 @@ protected:
+     // 9: out-of-line jump targets moved into CachedCodeBlockRareData, a code block's scalars lost the number of value profiles;
+     // LazyClosureVar resolve types, module function slot table.
+     // 10: GenericCacheEntry records the payload's size. 11: op_check_type (opcode numbering).
+-    static constexpr uint32_t cachedTypesFormatRevision = 13;
++    static constexpr uint32_t cachedTypesFormatRevision = 14;
+     static uint32_t currentCacheVersion() { return computeJSCBytecodeCacheVersion() ^ (cachedTypesFormatRevision * 0x9E3779B9u); }
+ 
+     GenericCacheEntry(Encoder& encoder, CachedCodeBlockTag tag)
+@@ -5904,13 +5924,12 @@ struct BytecodeLinkEncoder::Impl {
+ 
+ #if ENABLE(FTL_JIT)
+     // The engine's own functions that are written in JavaScript, each as a builtin of an embedder's would be: with a text of its own.
+-    // What runs the program asks StaticHeap for them (BuiltinExecutables::staticExecutableFor()), so that they are neither parsed nor
+-    // interpreted.
++    // StaticHeap supplies standalone executables; a sidecar matches the ordinary combined-source executables instead.
+     Vector<UnlinkedFunctionExecutable*> builtinsOfEngine; // By BuiltinCodeIndex. The modules keep them.
+     void addBuiltinsOfEngine()
+     {
+         unsigned added = 0;
+-        vm.builtinExecutables()->forEachOnItsOwn([&](unsigned index, UnlinkedFunctionExecutable* executable, const SourceCode& source) {
++        vm.builtinExecutables()->forEachForImage(aotHasStaticHeap, [&](unsigned index, UnlinkedFunctionExecutable* executable, const SourceCode& source) {
+             ParserError error;
+             recursivelyGenerateUnlinkedCodeBlocksForFunction(vm, executable, source, error, std::numeric_limits<unsigned>::max());
+             if (error.isValid()) {
+@@ -6223,6 +6242,24 @@ struct BytecodeLinkEncoder::Impl {
+             UnlinkedFunctionExecutable* executable { nullptr };
+         };
+         Vector<Job> jobs;
++        UncheckedKeyHashSet<uint32_t> sidecarModuleIDs;
++        if (!aotHasStaticHeap) {
++            for (auto& module : modules) {
++                if (dynamicDowncast<UnlinkedFunctionExecutable>(module.root.get())) {
++                    if (uint32_t id = module.source.provider()->aotModuleID())
++                        sidecarModuleIDs.add(id);
++                }
++            }
++        }
++        auto moduleID = [&](unsigned index) {
++            if (!aotHasStaticHeap && dynamicDowncast<UnlinkedFunctionExecutable>(modules[index].root.get())) {
++                if (uint32_t id = modules[index].source.provider()->aotModuleID())
++                    return id;
++            }
++            uint32_t id = modules[index].entryOffset + 1;
++            RELEASE_ASSERT(!sidecarModuleIDs.contains(id));
++            return id;
++        };
+         for (unsigned index = 0; index < modules.size(); ++index) {
+             // The code of the module itself, which comes before its functions' as it runs before them.
+             if (auto* codeBlock = dynamicDowncast<UnlinkedCodeBlock>(modules[index].root.get()))
+@@ -6250,7 +6287,7 @@ struct BytecodeLinkEncoder::Impl {
+             known.forConstruct = function.forConstruct;
+             known.conventionForCall = conventions[it->value][0];
+             known.conventionForConstruct = conventions[it->value][1];
+-            known.key.module = modules[function.module].entryOffset + 1;
++            known.key.module = moduleID(function.module);
+             known.key.start = function.key.start;
+             known.key.kind = static_cast<uint32_t>(function.key.kind) << 1;
+             return true;
+@@ -6270,7 +6307,7 @@ struct BytecodeLinkEncoder::Impl {
+                 if (!codeBlock)
+                     continue;
+                 AOT::ImageKey key;
+-                key.module = modules[function.module].entryOffset + 1;
++                key.module = moduleID(function.module);
+                 key.start = function.key.start;
+                 key.kind = static_cast<uint32_t>(function.key.kind) << 1 | isConstruct;
+                 if (!keys.insert({ key.module, key.start, key.kind }).second)
+@@ -6280,6 +6317,83 @@ struct BytecodeLinkEncoder::Impl {
+             }
+         }
+ 
++        // A sidecar embedder does not install StaticHeap's FunctionInfo table. Whole-program
++        // direct calls can enter a callee before install() has populated its constants. Compile
++        // the complete module set with ordinary dynamic calls in that configuration. This still
++        // precompiles Bun's internal modules and regular expressions, without assuming a heap.
++        if (!aotHasStaticHeap) {
++            RELEASE_ASSERT(!Options::omitBytecodeFromStaticHeap());
++            DeferGC deferGC(vm);
++            AOT::ImageBuilder builder;
++            // Keep compilation and all runtime keys unchanged. This export-only
++            // option changes physical image layout, not Job.rank's semantic bits.
++            Vector<uint64_t> imageRanks;
++            if (Options::useAOTTrainedLayout()) {
++                Vector<unsigned> imageOrder;
++                Vector<std::optional<uint64_t>> hotRanks(jobs.size());
++                unsigned hotJobs = 0;
++                for (unsigned index = 0; index < jobs.size(); ++index) {
++                    imageOrder.append(index);
++                    if (jobs[index].executable) {
++                        hotRanks[index] = encoder.hotRankOfLinkedFunction(*jobs[index].executable);
++                        if (hotRanks[index])
++                            ++hotJobs;
++                    }
++                }
++                auto layoutKey = [&](unsigned index) {
++                    auto& job = jobs[index];
++                    if (!job.executable)
++                        return std::tuple<unsigned, uint64_t, uint64_t, unsigned> { 0, job.rank, job.rank, index };
++                    if (hotRanks[index])
++                        return std::tuple<unsigned, uint64_t, uint64_t, unsigned> { 1, *hotRanks[index], job.rank, index };
++                    return std::tuple<unsigned, uint64_t, uint64_t, unsigned> { 2, job.rank, job.rank, index };
++                };
++                std::ranges::sort(imageOrder, [&](unsigned a, unsigned b) { return layoutKey(a) < layoutKey(b); });
++                imageRanks.grow(jobs.size());
++                for (unsigned rank = 0; rank < imageOrder.size(); ++rank)
++                    imageRanks[imageOrder[rank]] = rank;
++                dataLogLn("AOT: trained native layout jobs ", jobs.size(), " hot ", hotJobs);
++            }
++            unsigned compiled = 0;
++            unsigned skippedTrainedHot = 0;
++            for (unsigned index = 0; index < jobs.size(); ++index) {
++                auto& job = jobs[index];
++                // Retain native entry code and untrained functions. A missing image
++                // key follows ScriptExecutable's ordinary bytecode/JIT path. Both
++                // call and construct jobs for a trained hot executable are omitted.
++                bool skipTrainedHot = Options::skipAOTTrainedHotFunctions() && job.executable
++                    && encoder.hotRankOfLinkedFunction(*job.executable).has_value();
++                if (skipTrainedHot) {
++                    ++skippedTrainedHot;
++                    dataLogLn("AOT: selective hybrid omitted trained hot @", job.key.module, ":", job.key.start, ":", job.key.kind);
++                }
++                AOT::CompiledCode code;
++                if (!skipTrainedHot && AOT::compileForImage(vm, job.codeBlock, code)) {
++                    if (Options::skipAOTTrainedHotFunctions()) {
++                        // This export has no whole-program linkage or inlining:
++                        // retained code must not depend on an omitted native key.
++                        RELEASE_ASSERT(code.info.knownCallees.isEmpty());
++                        RELEASE_ASSERT(code.info.inlineFrames.isEmpty());
++                        RELEASE_ASSERT(!code.info.usesStaticImports);
++                    }
++                    bool topLevel = !(job.rank & 2);
++                    AOT::collectConstructSites(code.info, job.codeBlock, modules[job.module].source.provider()->source(), topLevel ? 0 : job.key.start);
++                    builder.add(job.key, imageRanks.isEmpty() ? job.rank : imageRanks[index], WTF::move(code));
++                    ++compiled;
++                }
++                for (auto& constant : job.codeBlock->constantRegisters()) {
++                    if (auto* regExp = constant.get().isCell() ? dynamicDowncast<RegExp>(constant.get().asCell()) : nullptr)
++                        builder.addRegExp(vm, regExp->pattern(), regExp->flags());
++                }
++            }
++            if (Options::skipAOTTrainedHotFunctions())
++                dataLogLn("AOT: selective hybrid skipped ", skippedTrainedHot, " trained hot function jobs");
++            dataLogLn("AOT: sidecar compiled ", compiled, " of ", jobs.size(), " functions with dynamic linking");
++            Vector<uint8_t> image = builder.finish();
++            reportableSites = builder.takeReportableSites();
++            return image;
++        }
++
+         auto textOfModule = [&](unsigned module) -> StringView {
+             return modules[module].source.provider()->source();
+         };
+@@ -6905,6 +7019,7 @@ struct BytecodeLinkEncoder::Impl {
+     };
+     Vector<FunctionToCompile> functionsToCompile;
+     bool compilesAheadOfTime { false };
++    bool aotHasStaticHeap { true };
+ #endif
+ 
+     void placeCodeOfFunctionsIn(UnlinkedCodeBlock& codeBlock, unsigned module, const SourceCode& source, Encoder::LinkClass goes)
+@@ -6936,6 +7051,7 @@ BytecodeLinkEncoder::BytecodeLinkEncoder(VM& vm, EncoderStringTable* strings, Hi
+     vm.keepUnlinkedCode();
+ #if ENABLE(FTL_JIT)
+     m_impl->compilesAheadOfTime = hints.compileAheadOfTime;
++    m_impl->aotHasStaticHeap = hints.aotHasStaticHeap;
+ #endif
+     m_impl->encoder.beginLink(hints.hotFunctions.span(), hints.knownFunctions.span());
+     for (uint64_t hash : hints.notEvaluatedModules) {
+diff --git a/Source/JavaScriptCore/runtime/CachedTypes.h b/Source/JavaScriptCore/runtime/CachedTypes.h
+index e572aae01..cae7ec1c3 100644
+--- a/Source/JavaScriptCore/runtime/CachedTypes.h
++++ b/Source/JavaScriptCore/runtime/CachedTypes.h
+@@ -496,6 +496,7 @@ public:
+         Vector<uint64_t> evaluatedModules;
+         Vector<uint64_t> notEvaluatedModules;
+         bool compileAheadOfTime { false }; // Result::aotImage
++        bool aotHasStaticHeap { true }; // Direct calls need prelinked callee metadata; false keeps dynamic linking.
+     };
+     static constexpr unsigned numberOfRegions = 6; // BytecodeLinkRegions::Count
+     struct Result {
+diff --git a/Source/JavaScriptCore/runtime/CodeCache.h b/Source/JavaScriptCore/runtime/CodeCache.h
+index e7d460ec2..0050e5418 100644
+--- a/Source/JavaScriptCore/runtime/CodeCache.h
++++ b/Source/JavaScriptCore/runtime/CodeCache.h
+@@ -310,6 +310,11 @@ struct AOTCompileAllResult {
+     size_t bytecodeBytes { 0 };
+ };
+ JS_EXPORT_PRIVATE std::optional<AOTCompileAllResult> aotCompileAllFunctions(VM&, const SourceCode&, bool isModule);
++// Produces a standalone image without registering it or executing the source. Empty if nothing compiled.
++JS_EXPORT_PRIVATE Vector<uint8_t> aotCompileImage(VM&, const SourceCode&, bool isModule, OptimizeBytecode = OptimizeBytecode::No);
++namespace AOT {
++JS_EXPORT_PRIVATE void setEmbedderSourceStamp(uint64_t);
++}
+ // For Options::compileMainScriptAheadOfTime() in the jsc shell. Compiles the source and all its functions into an AOT image and registers it. Returns false if
+ // nothing was compiled or an image with code is already registered.
+ JS_EXPORT_PRIVATE bool aotCompileAndRegisterImage(VM&, const SourceCode&, bool isModule);
+diff --git a/Source/JavaScriptCore/runtime/OptionsList.h b/Source/JavaScriptCore/runtime/OptionsList.h
+index 7ac0274b6..5206ae60a 100644
+--- a/Source/JavaScriptCore/runtime/OptionsList.h
++++ b/Source/JavaScriptCore/runtime/OptionsList.h
+@@ -148,7 +148,12 @@ bool hasCapacityToUseLargeGigacage();
+     v(Bool, dumpAOTDisassembly, false, Normal, "Dump the machine code the AOT compiler generates."_s) \
+     v(OptionString, aotMapFilePath, nullptr, Normal, "When compiling: write a map of the image (the location and key of each function) to this file, for symbolicating profiles."_s) \
+     v(Bool, forceAOTVeneers, false, Normal, "For testing. Route every direct call between functions in an image through a veneer, as if the target were out of range."_s) \
++    v(Bool, useAOTMappedImages, true, Normal, "Map AOT image metadata read-only and code executable directly from the file; avoids private copies. Disable for the copying-loader control."_s) \
+     v(OptionString, aotImagePath, nullptr, Normal, "Path to an AOT image. Functions that the image has code for run that code."_s) \
++    v(Bool, useAOTNativeTiering, false, Normal, "Let generic sidecar functions start in AOT, then collect ordinary JIT profiles after a call-count threshold. Requires useJIT and useLLInt. Static-heap functions and loop OSR are excluded."_s) \
++    v(Unsigned, thresholdForAOTNativeTiering, 1000, Normal, "Entry attempts before a generic AOT function moves to the interpreter and normal JIT tiers. Zero disables promotion."_s) \
++    v(Bool, useAOTTrainedLayout, false, Normal, "Export-only: lay out generic sidecar native code by the existing trained bytecode hot-function order; does not change runtime keys or compilation."_s) \
++    v(Bool, skipAOTTrainedHotFunctions, false, Normal, "Export-only hybrid experiment: omit trained hot functions from a generic sidecar so ordinary bytecode can tier to JIT; requires useJIT at runtime for that benefit."_s) \
+     v(Bool, definePlainInstanceFieldsInConstructor, false, Normal, "A class whose instance fields all lack initializers (class C { a; b; }) defines them directly in its constructor instead of calling a synthesized initializer function."_s) \
+     v(Bool, evaluateObjectLiteralValuesFirst, false, Normal, "Evaluate all property values of an object literal before allocating the object, where the difference is unobservable, so that the allocation and its stores form one run of instructions."_s) \
+     v(Bool, resolveAllScopeSlotsStatically, false, Normal, "The bytecode optimizer resolves get_from_scope to a scope slot whenever it can prove the variable's location, even if that widens the instruction."_s) \
+diff --git a/Source/WTF/wtf/Threading.cpp b/Source/WTF/wtf/Threading.cpp
+index 2defab782..4694307a3 100644
+--- a/Source/WTF/wtf/Threading.cpp
++++ b/Source/WTF/wtf/Threading.cpp
+@@ -524,6 +524,9 @@ void initialize()
+ {
+     static std::once_flag onceKey;
+     std::call_once(onceKey, [] {
++        // StaticHeap images carry raw pointers to the fixed-address empty string. Initialize it before threading, atom tables or
++        // any other subsystem can inspect those pointers; ordinary accessors also support use before WTF::initialize().
++        StringImpl::initializeEmptyString();
+ #if ENABLE(CONJECTURE_ASSERT)
+         wtfConjectureAssertIsEnabled = !!getenv("ENABLE_WEBKIT_CONJECTURE_ASSERT");
+ #endif
+diff --git a/Source/WTF/wtf/text/AtomString.cpp b/Source/WTF/wtf/text/AtomString.cpp
+index 35ecbfafe..430d1e227 100644
+--- a/Source/WTF/wtf/text/AtomString.cpp
++++ b/Source/WTF/wtf/text/AtomString.cpp
+@@ -31,7 +31,7 @@
+ namespace WTF {
+ 
+ const StaticAtomString nullAtomData { nullptr };
+-const StaticAtomString emptyAtomData { StringImpl::emptyAsStaticStringImpl() };
++const StaticAtomString emptyAtomData { StringImpl::emptyAsStaticStringImplAddress() };
+ 
+ template<AtomString::CaseConvertType type>
+ ALWAYS_INLINE AtomString AtomString::convertASCIICase() const
+diff --git a/Source/WTF/wtf/text/AtomString.h b/Source/WTF/wtf/text/AtomString.h
+index 97e8f906d..0867b9718 100644
+--- a/Source/WTF/wtf/text/AtomString.h
++++ b/Source/WTF/wtf/text/AtomString.h
+@@ -251,7 +251,11 @@ extern WTF_EXPORT_PRIVATE const StaticAtomString nullAtomData;
+ extern WTF_EXPORT_PRIVATE const StaticAtomString emptyAtomData;
+ 
+ inline const AtomString& nullAtom() { SUPPRESS_MEMORY_UNSAFE_CAST return *reinterpret_cast<const AtomString*>(&nullAtomData); }
+-inline const AtomString& emptyAtom() { SUPPRESS_MEMORY_UNSAFE_CAST return *reinterpret_cast<const AtomString*>(&emptyAtomData); }
++inline const AtomString& emptyAtom()
++{
++    StringImpl::initializeEmptyString();
++    SUPPRESS_MEMORY_UNSAFE_CAST return *reinterpret_cast<const AtomString*>(&emptyAtomData);
++}
+ 
+ inline AtomString::AtomString(ASCIILiteral literal)
+     : m_string(literal.isNull() ? RefPtr<AtomStringImpl> { } : literal.length() ? AtomStringImpl::add(literal) : Ref { *emptyAtom().impl() })
+diff --git a/Source/WTF/wtf/text/StringImpl.cpp b/Source/WTF/wtf/text/StringImpl.cpp
+index 2419d7989..6853b9244 100644
+--- a/Source/WTF/wtf/text/StringImpl.cpp
++++ b/Source/WTF/wtf/text/StringImpl.cpp
+@@ -29,6 +29,7 @@
+ #include <wtf/text/StringImpl.h>
+ 
+ #include <atomic>
++#include <mutex>
+ #include <wtf/NeverDestroyed.h>
+ #include <wtf/SIMDUTF.h>
+ #include <wtf/StdLibExtras.h>
+@@ -117,10 +118,18 @@ void StringStats::printStats()
+ 
+ DEFINE_COMPACT_ALLOCATOR_WITH_HEAP_IDENTIFIER(StringImpl);
+ 
+-__attribute__((constructor(101))) static void constructEmptyString()
++constinit std::atomic<bool> StringImpl::s_emptyStringInitialized { false };
++
++void StringImpl::initializeEmptyStringSlow()
+ {
+-    bmalloc::StaticRegion::mapBss();
+-    new (NotNull, StringImpl::emptyAsStaticStringImpl()) StringImpl::StaticStringImpl("", StringImpl::StringAtom);
++    static std::once_flag once;
++    std::call_once(once, [] {
++        // Neither mapping nor the plain-data constructor calls a String accessor. Publish only after construction, so concurrent
++        // first use (including an accessor called by another static initializer) sees the complete canonical object.
++        bmalloc::StaticRegion::mapBss();
++        new (NotNull, emptyAsStaticStringImplAddress()) StaticStringImpl("", StringAtom);
++        s_emptyStringInitialized.store(true);
++    });
+ }
+ 
+ StringImpl::~StringImpl()
+diff --git a/Source/WTF/wtf/text/StringImpl.h b/Source/WTF/wtf/text/StringImpl.h
+index 13dfb2e25..f08a040d4 100644
+--- a/Source/WTF/wtf/text/StringImpl.h
++++ b/Source/WTF/wtf/text/StringImpl.h
+@@ -26,6 +26,7 @@
+ 
+ #include <bmalloc/StaticRegion.h>
+ 
++#include <atomic>
+ #include <limits.h>
+ #include <unicode/uchar.h>
+ #include <unicode/ustring.h>
+@@ -436,10 +437,24 @@ public:
+         ASCIILiteral literal() const { return ASCIILiteral::fromLiteralUnsafe(m_data8Char); }
+     };
+ 
+-    // At the same address in every process, unlike what is in the executable: what is made when a program is built, to be there
+-    // when it runs (bmalloc::StaticRegion), refers to it. It is there before any other static initializer of the process has run.
+-    ALWAYS_INLINE static StaticStringImpl* emptyAsStaticStringImpl() { return reinterpret_cast<StaticStringImpl*>(bmalloc::StaticRegion::startOf(bmalloc::StaticRegion::Arena::Bss) + bmalloc::StaticRegion::offsetOfEmptyStringInBss); }
+-    ALWAYS_INLINE static StringImpl* empty() { SUPPRESS_MEMORY_UNSAFE_CAST return reinterpret_cast<StringImpl*>(emptyAsStaticStringImpl()); }
++    // Serialized StaticRegion objects refer to this address in every process. Only the constant global String/AtomString wrappers
++    // and the placement constructor use this address-only helper. Use the guarded accessors when accessing the object.
++    ALWAYS_INLINE static StaticStringImpl* emptyAsStaticStringImplAddress() { return reinterpret_cast<StaticStringImpl*>(bmalloc::StaticRegion::startOf(bmalloc::StaticRegion::Arena::Bss) + bmalloc::StaticRegion::offsetOfEmptyStringInBss); }
++    ALWAYS_INLINE static StaticStringImpl* emptyAsStaticStringImpl()
++    {
++        initializeEmptyString();
++        return emptyAsStaticStringImplAddress();
++    }
++    ALWAYS_INLINE static void initializeEmptyString()
++    {
++        if (!s_emptyStringInitialized.load()) [[unlikely]]
++            initializeEmptyStringSlow();
++    }
++    ALWAYS_INLINE static StringImpl* empty()
++    {
++        initializeEmptyString();
++        SUPPRESS_MEMORY_UNSAFE_CAST return reinterpret_cast<StringImpl*>(emptyAsStaticStringImplAddress());
++    }
+ 
+ 
+     template<typename SourceCharacterType> static void iterCharacters(jsstring_iterator* iter, unsigned start, const SourceCharacterType* source, unsigned numCharacters);
+@@ -576,6 +591,9 @@ private:
+     template<typename> static size_t allocationSize(Checked<size_t> tailElementCount);
+     template<typename> static constexpr size_t tailOffset();
+ 
++    WTF_EXPORT_PRIVATE static std::atomic<bool> s_emptyStringInitialized;
++    WTF_EXPORT_PRIVATE static void initializeEmptyStringSlow();
++
+     WTF_EXPORT_PRIVATE size_t NODELETE find(std::span<const Latin1Character>, size_t start);
+     WTF_EXPORT_PRIVATE size_t NODELETE reverseFind(std::span<const Latin1Character>, size_t start);
+ 
+diff --git a/Source/WTF/wtf/text/WTFString.cpp b/Source/WTF/wtf/text/WTFString.cpp
+index 22c008fd1..d8a8cdce2 100644
+--- a/Source/WTF/wtf/text/WTFString.cpp
++++ b/Source/WTF/wtf/text/WTFString.cpp
+@@ -622,7 +622,7 @@ float charactersToFloat(std::span<const char16_t> data, size_t& parsedLength)
+ }
+ 
+ const StaticString nullStringData { nullptr };
+-const StaticString emptyStringData { StringImpl::emptyAsStaticStringImpl() };
++const StaticString emptyStringData { StringImpl::emptyAsStaticStringImplAddress() };
+ 
+ } // namespace WTF
+ 
+diff --git a/Source/WTF/wtf/text/WTFString.h b/Source/WTF/wtf/text/WTFString.h
+index 01e03526b..e951a0eda 100644
+--- a/Source/WTF/wtf/text/WTFString.h
++++ b/Source/WTF/wtf/text/WTFString.h
+@@ -397,7 +397,11 @@ extern WTF_EXPORT_PRIVATE const StaticString nullStringData;
+ extern WTF_EXPORT_PRIVATE const StaticString emptyStringData;
+ 
+ inline const String& nullString() { SUPPRESS_MEMORY_UNSAFE_CAST return *reinterpret_cast<const String*>(&nullStringData); }
+-inline const String& emptyString() { SUPPRESS_MEMORY_UNSAFE_CAST return *reinterpret_cast<const String*>(&emptyStringData); }
++inline const String& emptyString()
++{
++    StringImpl::initializeEmptyString();
++    SUPPRESS_MEMORY_UNSAFE_CAST return *reinterpret_cast<const String*>(&emptyStringData);
++}
+ 
+ template<typename> struct DefaultHash;
+ template<> struct DefaultHash<String>;
+diff --git a/Source/bmalloc/bmalloc/StaticRegion.cpp b/Source/bmalloc/bmalloc/StaticRegion.cpp
+index 77260b229..5771b8f62 100644
+--- a/Source/bmalloc/bmalloc/StaticRegion.cpp
++++ b/Source/bmalloc/bmalloc/StaticRegion.cpp
+@@ -10,6 +10,7 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <cstdio>
++#include <mutex>
+ #include <utility>
+ #include <sys/mman.h>
+ 
+@@ -109,13 +110,12 @@ bool StaticRegion::isAllocatingMutable()
+ 
+ void StaticRegion::mapBss()
+ {
+-    static bool isMapped = false;
+-    if (isMapped)
+-        return;
+-    isMapped = true;
+-    void* wanted = reinterpret_cast<void*>(startOf(Arena::Bss));
+-    void* result = mmap(wanted, arenaReservation, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_NORESERVE, -1, 0);
+-    RELEASE_BASSERT(result == wanted);
++    static std::once_flag once;
++    std::call_once(once, [] {
++        void* wanted = reinterpret_cast<void*>(startOf(Arena::Bss));
++        void* result = mmap(wanted, arenaReservation, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_NORESERVE, -1, 0);
++        RELEASE_BASSERT(result == wanted);
++    });
+ }
+ 
+ bool StaticRegion::map(Arena arena, int fileDescriptor, off_t offsetInFile, size_t size, size_t offsetInArena, bool isCode)
+diff --git a/Tools/TestWebKitAPI/Tests/WTF/StringImpl.cpp b/Tools/TestWebKitAPI/Tests/WTF/StringImpl.cpp
+index d64dd17c6..a88939002 100644
+--- a/Tools/TestWebKitAPI/Tests/WTF/StringImpl.cpp
++++ b/Tools/TestWebKitAPI/Tests/WTF/StringImpl.cpp
+@@ -25,14 +25,49 @@
+ 
+ #include "config.h"
+ 
++#include <array>
++#include <thread>
+ #include <wtf/Hasher.h>
+ #include <wtf/NeverDestroyed.h>
++#include <wtf/text/AtomString.h>
+ #include <wtf/text/ExternalStringImpl.h>
+ #include <wtf/text/SymbolImpl.h>
+ #include <wtf/text/WTFString.h>
+ 
+ namespace TestWebKitAPI {
+ 
++TEST(WTF, FixedAddressEmptyStringInitialization)
++{
++    auto* fixedAddress = StringImpl::emptyAsStaticStringImpl();
++    auto* canonical = StringImpl::empty();
++    EXPECT_EQ(reinterpret_cast<uintptr_t>(canonical), bmalloc::StaticRegion::startOf(bmalloc::StaticRegion::Arena::Bss) + bmalloc::StaticRegion::offsetOfEmptyStringInBss);
++    EXPECT_EQ(static_cast<StringImpl&>(*fixedAddress).length(), 0u);
++    EXPECT_TRUE(canonical->isStatic());
++    EXPECT_TRUE(canonical->isAtom());
++    EXPECT_TRUE(canonical->is8Bit());
++    EXPECT_TRUE(canonical->hasHash());
++    EXPECT_EQ(emptyString().impl(), canonical);
++    EXPECT_EQ(emptyAtom().impl(), canonical);
++    EXPECT_FALSE(emptyString().isNull());
++    EXPECT_FALSE(emptyAtom().isNull());
++
++    auto hash = canonical->hash();
++    std::array<StringImpl*, 4> results { };
++    std::array<std::thread, 4> threads;
++    for (size_t i = 0; i < threads.size(); ++i) {
++        threads[i] = std::thread([&, i] {
++            StringImpl::initializeEmptyString();
++            bmalloc::StaticRegion::mapBss();
++            results[i] = i % 2 ? emptyAtom().impl() : emptyString().impl();
++        });
++    }
++    for (auto& thread : threads)
++        thread.join();
++    for (auto* result : results)
++        EXPECT_EQ(result, canonical);
++    EXPECT_EQ(canonical->hash(), hash);
++}
++
+ TEST(WTF, StringImplCreationFromLiteral)
+ {
+     // Constructor taking an ASCIILiteral.

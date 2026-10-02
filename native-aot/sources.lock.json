@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "bun": {
+    "repository": "https://github.com/oven-sh/bun.git",
+    "ref": "main",
+    "commit": "37da174d500f2201793c8352f791afdd9102eab9"
+  },
+  "webkit": {
+    "repository": "https://github.com/oven-sh/WebKit.git",
+    "ref": "claude/sound-types-aot",
+    "commit": "d28f16e5cc234c19054d7edec2a2de5519500a1f",
+    "pull_request": "https://github.com/oven-sh/WebKit/pull/743"
+  },
+  "targets": [
+    "darwin-arm64",
+    "linux-x64",
+    "linux-arm64"
+  ],
+  "priorities": [
+    "CPU time and wall time",
+    "memory"
+  ],
+  "change_default_runtime": false,
+  "experimental_native_targets": [
+    "darwin-arm64",
+    "linux-arm64"
+  ],
+  "linux_native_aot_status": "requires x64 port of the public AOT runtime stubs",
+  "validated_native_targets": [
+    "darwin-arm64"
+  ],
+  "linux_arm64_status": "Native source build route prepared; ARM64 backend present, native Linux build/execution validation pending"
+}

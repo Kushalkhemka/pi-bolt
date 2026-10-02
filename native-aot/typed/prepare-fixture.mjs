@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {loadTypeScript, checkedTypeScript} from './frontend.mjs';
+const [outfile, receipt] = process.argv.slice(2);
+if (!outfile || !receipt) throw new Error('Usage: node prepare-fixture.mjs fresh-output.mjs fresh-receipt.json');
+const source = new URL('./primitive-fixture.ts', import.meta.url);
+const result = checkedTypeScript(loadTypeScript(), fs.readFileSync(source, 'utf8'), source.pathname);
+fs.writeFileSync(path.resolve(outfile), result.contents, {flag: 'wx'});
+fs.writeFileSync(path.resolve(receipt), JSON.stringify(result.report, null, 2) + '\n', {flag: 'wx'});
+console.log(JSON.stringify({output: path.resolve(outfile), receipt: path.resolve(receipt), ...result.report}));

@@ -1,0 +1,77 @@
+{
+  "complete": true,
+  "legal_clearance": false,
+  "scope": "Original public upstream notices at pinned release commits; no general redistribution clearance",
+  "files": [
+    {
+      "component": "quickjs-wasi-3.6.2",
+      "repository": "https://github.com/vercel-labs/quickjs-wasi",
+      "tag": "quickjs-wasi@3.6.2",
+      "commit": "5a7a0eeda87c99542f8cf3095b6d61ecfa755977",
+      "source_url": "https://raw.githubusercontent.com/vercel-labs/quickjs-wasi/5a7a0eeda87c99542f8cf3095b6d61ecfa755977/LICENSE",
+      "relative_path": "quickjs-wasi-3.6.2/LICENSE",
+      "sha256": "f7735da3b2531ddf451937117343cfadb853fd8054b499e7a70695dc57ffd184",
+      "bytes": 1069
+    },
+    {
+      "component": "quickjs-ng",
+      "repository": "https://github.com/quickjs-ng/quickjs",
+      "tag": null,
+      "commit": "6d46d07d04041b40f4f49eaa7fdebe44c314c699",
+      "source_url": "https://raw.githubusercontent.com/quickjs-ng/quickjs/6d46d07d04041b40f4f49eaa7fdebe44c314c699/LICENSE",
+      "relative_path": "quickjs-ng/LICENSE",
+      "sha256": "96f73f9d2a16c21a36b418f06073be26e7d6d5e7c1bc99756b21a4f2c74ef171",
+      "bytes": 1212
+    },
+    {
+      "component": "marked-18.0.5",
+      "repository": "https://github.com/markedjs/marked",
+      "tag": "v18.0.5",
+      "commit": "4063c638cb621c09091d41b26f323ff074416bb9",
+      "source_url": "https://raw.githubusercontent.com/markedjs/marked/4063c638cb621c09091d41b26f323ff074416bb9/LICENSE",
+      "relative_path": "marked-18.0.5/LICENSE",
+      "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+      "bytes": 2942
+    },
+    {
+      "component": "highlight-js-11.9.0",
+      "repository": "https://github.com/highlightjs/highlight.js",
+      "tag": "11.9.0",
+      "commit": "15d3b627fa7c99cb98d7b6760a6fbdbfd519d1a0",
+      "source_url": "https://raw.githubusercontent.com/highlightjs/highlight.js/15d3b627fa7c99cb98d7b6760a6fbdbfd519d1a0/LICENSE",
+      "relative_path": "highlight-js-11.9.0/LICENSE",
+      "sha256": "6c081431591d9df696c82dc598fe1423765b8a299b200ed00b281afd0f64c490",
+      "bytes": 1514
+    },
+    {
+      "component": "quickjs-wasi-build-provenance",
+      "source_url": "https://raw.githubusercontent.com/vercel-labs/quickjs-wasi/5a7a0eeda87c99542f8cf3095b6d61ecfa755977/.gitmodules",
+      "relative_path": "quickjs-wasi-3.6.2/.gitmodules",
+      "sha256": "16eac555a4cdc62d0d604c51251cd5efeeba00f1f739505a1f16633b84145696",
+      "bytes": 93
+    },
+    {
+      "component": "quickjs-wasi-build-provenance",
+      "source_url": "https://raw.githubusercontent.com/vercel-labs/quickjs-wasi/5a7a0eeda87c99542f8cf3095b6d61ecfa755977/Makefile",
+      "relative_path": "quickjs-wasi-3.6.2/Makefile",
+      "sha256": "a6423a5999fa4cf3784c69e8838d7999690e2fc614f54d8006337728a35cfd03",
+      "bytes": 17101
+    }
+  ],
+  "quickjs_wasi_binary_provenance": {
+    "registry_url": "https://registry.npmjs.org/quickjs-wasi/3.6.2",
+    "gitHead": null,
+    "tarball_url": "https://registry.npmjs.org/quickjs-wasi/-/quickjs-wasi-3.6.2.tgz",
+    "tarball_sha256": "f1f4349f19a2d849e33ea0ae9bec2e7062b8839f4eceb17c9051ddbaa2720982",
+    "npm_integrity": "sha512-FCqGtGOrMgzUiIrMNMA2YnsOxCNwo31dzqXvclXUC6xeT35NJLKXQJsvbeCTjvoFAwZgEAPg8U6+KAPDGXn8Mg==",
+    "wasm_sha256": "d4c9375f2b1ca4dc95f72c8aa2982a7a9951ac8011490d79c6582df732b4bbd9",
+    "installed_wasm_identical": true,
+    "source_tag_commit_matches_gitHead": false
+  },
+  "quickjs_ng_gitlink": {
+    "parent_commit": "5a7a0eeda87c99542f8cf3095b6d61ecfa755977",
+    "path": "quickjs-ng",
+    "commit": "6d46d07d04041b40f4f49eaa7fdebe44c314c699",
+    "tree_url": "https://api.github.com/repos/vercel-labs/quickjs-wasi/git/trees/5a7a0eeda87c99542f8cf3095b6d61ecfa755977?recursive=1"
+  }
+}

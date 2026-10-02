@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Pi-Bolt</title>
+  <desc id="desc">A white pi symbol and amber lightning bolt on a dark rounded square.</desc>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#111827"/>
+  <path d="M30 44h68M42 44v45M88 44v34c0 8 4 12 11 12" fill="none" stroke="#f8fafc" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M79 23 52 66h18l-12 39 34-52H73z" fill="#fbbf24" stroke="#111827" stroke-width="3" stroke-linejoin="round"/>
+</svg>

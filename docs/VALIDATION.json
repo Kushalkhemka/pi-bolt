@@ -1,0 +1,719 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "scope": "Sanitized summary of completed local unsigned Apple M5 release checks and installed-launcher measurements",
+  "candidate": {
+    "version": "1.0.0-m5.1",
+    "pi_version": "1.0.0",
+    "target": "darwin-arm64",
+    "minimum_macos": "27.0",
+    "tested_hardware": "Apple M5",
+    "tested_macos": "27.0",
+    "release_status": "unsigned-candidate",
+    "archive": {
+      "filename": "pi-bolt-m5-1.0.0-m5.1.tar.gz",
+      "sha256": "78bf22e8007f65be7f71098f81bdc67c811d66faa032150e20bcb843ca0dbac9",
+      "bytes": 58038252
+    },
+    "file_pair": {
+      "pi-native": {
+        "sha256": "6b472c42e504f173699a8066d34964d7638b6ac5786d671cd1309b9ca2c681be",
+        "bytes": 101417602,
+        "mode": 493
+      },
+      "pi-native.aot": {
+        "sha256": "cb6a7c8d75604afe75a481fed37b978f66bc3e4b427743d06978baa86353dc85",
+        "bytes": 31178752,
+        "mode": 420
+      }
+    },
+    "compiler_sha256": "8f212e04300c762ef712a515dfa9a5f478a5600cef5333038991cce2c4a073d5",
+    "compiled_functions": {
+      "compiled": 40440,
+      "considered": 40440
+    },
+    "source_pins": {
+      "bun": {
+        "commit": "37da174d500f2201793c8352f791afdd9102eab9",
+        "ref": "main",
+        "repository": "https://github.com/oven-sh/bun.git"
+      },
+      "webkit": {
+        "commit": "d28f16e5cc234c19054d7edec2a2de5519500a1f",
+        "pull_request": "https://github.com/oven-sh/WebKit/pull/743",
+        "ref": "claude/sound-types-aot",
+        "repository": "https://github.com/oven-sh/WebKit.git"
+      },
+      "backend_patch_sha256": "f43a7183b96bcce733f070d51fc7b910a25976b936ec3cf3d234f55e30ccc1c0",
+      "bun_patch_sha256": "4bac907d330af21a218841e95f06fad09e293efa68df4e0194a84122423d9eed",
+      "build_driver_sha256": "1bf99417e0781996227664da53c800cf9b065e845e699199deced3f3442bd5bd",
+      "bytecode_order_sha256": "aa545fb1d3e813a2e65160caa494ce435228f2df45d54f8ab7a5c866ddfce69e"
+    },
+    "production_gates_as_recorded_in_candidate": {
+      "notarization": false,
+      "portable_acceptance": true,
+      "provider_soak": false,
+      "quarantined_install": false,
+      "second_m5": false,
+      "signed_hardened_acceptance": false,
+      "source_relink_delivery": false
+    }
+  },
+  "portable_acceptance": [
+    {
+      "revision": "v3",
+      "complete": true,
+      "gates": {
+        "rpc": 30,
+        "commands": 52,
+        "workers": 14,
+        "pty": 24
+      },
+      "total_gates": 120,
+      "worker_exits": 20,
+      "pty_cases": 4,
+      "visible_idle_frames": 12,
+      "pty_provider_requests": 24,
+      "pty_read_tools": 12,
+      "package_snapshot_files": 2447,
+      "package_unchanged": true,
+      "frozen_inputs_unchanged": true,
+      "frozen_input_count": 15,
+      "source_reads_denied": {
+        "relocated_metadata_read_exit": 0,
+        "original_source_read_exit": 1,
+        "scope": "Application and child processes; harness remains unsandboxed"
+      },
+      "native_selection": {
+        "hybrid": {
+          "version": "1.0.0",
+          "native_sites": 2245,
+          "jsc_builtin_sites": 14,
+          "bun_builtin_sites": 5,
+          "mapped_image": true,
+          "prelinked_graph": {
+            "version": 4,
+            "modules": 3
+          }
+        },
+        "tier10000": {
+          "version": "1.0.0",
+          "native_sites": 2245,
+          "jsc_builtin_sites": 14,
+          "bun_builtin_sites": 5,
+          "mapped_image": true,
+          "prelinked_graph": {
+            "version": 4,
+            "modules": 3
+          }
+        }
+      },
+      "consumer_sha256": {
+        "native-aot/release/acceptance.py": "fc85d368003e3e9c22147cc5d394191bb51266eafa1ba3b283d6c1e78c9c1975",
+        "native-aot/cli-workflows.py": "ad5dbe4e9558a6c31df70cb566dd964da150b8e03f71ee499707a1153ab75baa",
+        "native-aot/interactive-commands.py": "509e2a630d9f8128b0f14fe25fe0a24f834e18628d9d619f3f6302a7f055474d",
+        "native-aot/check-pi-v1-workers.py": "1128f055e55577793e6ff90976695f018c78f52ff639c88d1801f77a83d2ea7f",
+        "benchmarks/interactive_workload.py": "2f0dd845572d034737a7d1aca798c5408a87690d3803ab2e80ce355a91539ec3",
+        "benchmarks/terminal_screen.py": "e450a05d5a523cacfd07e7d1dde8cd8d7df0c568d5fd6e3914777f4cc930b295",
+        "benchmarks/platform_metrics.py": "4462342c5c48b5b32a2eb6d9751a103171367d43d651a4fa7fea4e39321f1c35"
+      }
+    },
+    {
+      "revision": "v4",
+      "complete": true,
+      "gates": {
+        "rpc": 30,
+        "commands": 52,
+        "workers": 14,
+        "pty": 24
+      },
+      "total_gates": 120,
+      "worker_exits": 20,
+      "pty_cases": 4,
+      "visible_idle_frames": 12,
+      "pty_provider_requests": 24,
+      "pty_read_tools": 12,
+      "package_snapshot_files": 2447,
+      "package_unchanged": true,
+      "frozen_inputs_unchanged": true,
+      "frozen_input_count": 16,
+      "source_reads_denied": {
+        "relocated_metadata_read_exit": 0,
+        "original_source_read_exit": 1,
+        "scope": "Application and child processes; harness remains unsandboxed"
+      },
+      "native_selection": {
+        "hybrid": {
+          "version": "1.0.0",
+          "native_sites": 2246,
+          "jsc_builtin_sites": 14,
+          "bun_builtin_sites": 5,
+          "mapped_image": true,
+          "prelinked_graph": {
+            "version": 4,
+            "modules": 3
+          }
+        },
+        "tier10000": {
+          "version": "1.0.0",
+          "native_sites": 2246,
+          "jsc_builtin_sites": 14,
+          "bun_builtin_sites": 5,
+          "mapped_image": true,
+          "prelinked_graph": {
+            "version": 4,
+            "modules": 3
+          }
+        }
+      },
+      "consumer_sha256": {
+        "native-aot/release/acceptance.py": "15f549a45c7e54d8a3133e84a2e14c082ace457b7e3860007f662a74886a2d3a",
+        "native-aot/cli-workflows.py": "ad5dbe4e9558a6c31df70cb566dd964da150b8e03f71ee499707a1153ab75baa",
+        "native-aot/interactive-commands.py": "509e2a630d9f8128b0f14fe25fe0a24f834e18628d9d619f3f6302a7f055474d",
+        "native-aot/check-pi-v1-workers.py": "1128f055e55577793e6ff90976695f018c78f52ff639c88d1801f77a83d2ea7f",
+        "benchmarks/interactive_workload.py": "2f0dd845572d034737a7d1aca798c5408a87690d3803ab2e80ce355a91539ec3",
+        "benchmarks/terminal_screen.py": "e450a05d5a523cacfd07e7d1dde8cd8d7df0c568d5fd6e3914777f4cc930b295",
+        "benchmarks/platform_metrics.py": "4462342c5c48b5b32a2eb6d9751a103171367d43d651a4fa7fea4e39321f1c35"
+      }
+    }
+  ],
+  "local_source_checks": {
+    "complete": true,
+    "macos_unit_tests": 32,
+    "javascript_guards": {
+      "adjacent_photon_wasm_resolution_and_pinned_source_guard": true,
+      "awaited_image_worker_termination_success_and_error": true
+    },
+    "python_314_compileall": true,
+    "bash_syntax": true,
+    "workflow_yaml_files": 2,
+    "fresh_npm_lock_install": true,
+    "tested_source_export_files": 103,
+    "tested_source_export_bytes": 2413933,
+    "tested_source_export_receipt_sha256": "32ab2d6066a8099b90ef1a70adb01e6f98ee9c1f51792ec5264767b78f823260",
+    "source_hashes_match_originals": true,
+    "generated_dependencies_removed": true,
+    "github_ci_execution_attested_by_this_evidence": false
+  },
+  "exact_archive_install": {
+    "complete": true,
+    "external_digest_mismatch_rejected": true,
+    "unsigned_install_without_explicit_opt_in_rejected": true,
+    "exact_unsigned_archive_install_passed": true,
+    "public_symlinks_version_and_inherited_runtime_override_sanitization_passed": true,
+    "doctor_integrity_passed": true,
+    "gatekeeper_rejected_unsigned_as_expected": true,
+    "installed_files_match_candidate": true
+  },
+  "installed_launcher_benchmark": {
+    "complete": true,
+    "measured_sessions": 64,
+    "discarded_warmups": 16,
+    "provider_requests_including_warmups": 9600,
+    "read_tools_including_warmups": 4800,
+    "final_visible_idle_frames_including_warmups": 4800,
+    "independently_rehashed_pinned_files": 17535,
+    "inputs_unchanged_before_between_after_and_independent_audit": true,
+    "endpoint": "visible-idle-editor-v3-alternate-screen",
+    "memory_metric": "macOS phys_footprint in decimal MB",
+    "wall_metric": "Startup plus turns through final visible idle, milliseconds",
+    "cpu_metric": "Selected process all-thread user+system through final visible idle, milliseconds; child CPU excluded",
+    "bootstrap": {
+      "resamples": 20000,
+      "seed": 20261002,
+      "method": "Same paired-round indexes resampled for candidate/reference; ratio of medians; positive reduction favors candidate; separate cohorts, no pooling"
+    },
+    "node_version": "26.10.0",
+    "stable_bun_version": "1.4.2",
+    "node_cache_policy": "Existing private warm published-Node cache,38files3013192bytes unchanged; two discarded warmups per policy/cohort; not cold-start measurements",
+    "external_observer": false,
+    "source_sandbox_during_performance": false,
+    "built_in_extensions_retained": true,
+    "default_tools_retained": true,
+    "streaming_deltas_per_turn": 32,
+    "pace_ms": 0,
+    "cohorts": [
+      {
+        "layout": "fullscreen",
+        "turns": 20,
+        "measured_sessions": 32,
+        "discarded_warmups": 8,
+        "paired_measured_rounds": 8,
+        "raw_sha256": "52109a0c49f57f108e15e899855661ac0f7c54e386a5405b027fbf0100abce51",
+        "medians": [
+          {
+            "policy": "ours_hybrid",
+            "ready_ms": 235.24168750009267,
+            "startup_plus_turns_ms": 964.9183539986552,
+            "cpu_through_turns_ms": 638.8737916666666,
+            "ready_footprint_mb": 45.85968,
+            "after_turns_footprint_mb": 55.493508000000006,
+            "peak_footprint_mb": 61.031324
+          },
+          {
+            "policy": "ours_tier10000",
+            "ready_ms": 247.1307914966019,
+            "startup_plus_turns_ms": 944.6473964999313,
+            "cpu_through_turns_ms": 740.3190625,
+            "ready_footprint_mb": 49.455991999999995,
+            "after_turns_footprint_mb": 87.245724,
+            "peak_footprint_mb": 88.925072
+          },
+          {
+            "policy": "stable_gc2",
+            "ready_ms": 215.1433539984282,
+            "startup_plus_turns_ms": 954.1755624995858,
+            "cpu_through_turns_ms": 1466.1129999999998,
+            "ready_footprint_mb": 60.810007999999996,
+            "after_turns_footprint_mb": 142.50893200000002,
+            "peak_footprint_mb": 156.648312
+          },
+          {
+            "policy": "node_published_stock",
+            "ready_ms": 741.2357500033977,
+            "startup_plus_turns_ms": 1802.1433959984279,
+            "cpu_through_turns_ms": 1665.5700208333333,
+            "ready_footprint_mb": 84.44309200000001,
+            "after_turns_footprint_mb": 147.94549999999998,
+            "peak_footprint_mb": 147.94549999999998
+          }
+        ],
+        "comparisons": {
+          "node_published_stock": {
+            "ours_hybrid": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": 46.45718225635043,
+                "paired_bootstrap_95_percent": [
+                  38.67838975056643,
+                  50.385547432378196
+                ],
+                "candidate_median": 964.9183539986552,
+                "reference_median": 1802.1433959984279,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": 61.642333635002664,
+                "paired_bootstrap_95_percent": [
+                  59.69494599723993,
+                  64.1634982378863
+                ],
+                "candidate_median": 638.8737916666666,
+                "reference_median": 1665.5700208333333,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": 58.74742793799068,
+                "paired_bootstrap_95_percent": [
+                  56.46070644019305,
+                  61.43083545787474
+                ],
+                "candidate_median": 61.031324,
+                "reference_median": 147.94549999999998,
+                "paired_rounds": 8
+              }
+            },
+            "ours_tier10000": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": 47.58200714785099,
+                "paired_bootstrap_95_percent": [
+                  40.01969589698808,
+                  51.57454935876946
+                ],
+                "candidate_median": 944.6473964999313,
+                "reference_median": 1802.1433959984279,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": 55.55160976483013,
+                "paired_bootstrap_95_percent": [
+                  52.403140096046386,
+                  57.124120885565624
+                ],
+                "candidate_median": 740.3190625,
+                "reference_median": 1665.5700208333333,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": 39.893358027111326,
+                "paired_bootstrap_95_percent": [
+                  33.903011080330714,
+                  43.0152830832044
+                ],
+                "candidate_median": 88.925072,
+                "reference_median": 147.94549999999998,
+                "paired_rounds": 8
+              }
+            }
+          },
+          "stable_gc2": {
+            "ours_hybrid": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": -1.1258715818425857,
+                "paired_bootstrap_95_percent": [
+                  -19.40549262734601,
+                  7.288041997503414
+                ],
+                "candidate_median": 964.9183539986552,
+                "reference_median": 954.1755624995858,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": 56.42397334539242,
+                "paired_bootstrap_95_percent": [
+                  53.63202603886903,
+                  58.39484196158664
+                ],
+                "candidate_median": 638.8737916666666,
+                "reference_median": 1466.1129999999998,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": 61.039271205169456,
+                "paired_bootstrap_95_percent": [
+                  58.33113057056896,
+                  62.73169706830923
+                ],
+                "candidate_median": 61.031324,
+                "reference_median": 156.648312,
+                "paired_rounds": 8
+              }
+            },
+            "ours_tier10000": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": 0.9985757730678224,
+                "paired_bootstrap_95_percent": [
+                  -16.677857108102057,
+                  9.997894727217972
+                ],
+                "candidate_median": 944.6473964999313,
+                "reference_median": 954.1755624995858,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": 49.50463828504351,
+                "paired_bootstrap_95_percent": [
+                  45.06666307645142,
+                  51.23130004303897
+                ],
+                "candidate_median": 740.3190625,
+                "reference_median": 1466.1129999999998,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": 43.232665028653486,
+                "paired_bootstrap_95_percent": [
+                  33.88460411168419,
+                  45.88424153562954
+                ],
+                "candidate_median": 88.925072,
+                "reference_median": 156.648312,
+                "paired_rounds": 8
+              }
+            }
+          },
+          "ours_hybrid": {
+            "ours_tier10000": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": 2.10079509988802,
+                "paired_bootstrap_95_percent": [
+                  -16.696988327277353,
+                  16.964167430944745
+                ],
+                "candidate_median": 944.6473964999313,
+                "reference_median": 964.9183539986552,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": -15.878765439522446,
+                "paired_bootstrap_95_percent": [
+                  -26.905871796177117,
+                  -11.014960535580599
+                ],
+                "candidate_median": 740.3190625,
+                "reference_median": 638.8737916666666,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": -45.70398636608311,
+                "paired_bootstrap_95_percent": [
+                  -62.08669538652647,
+                  -39.61669442387921
+                ],
+                "candidate_median": 88.925072,
+                "reference_median": 61.031324,
+                "paired_rounds": 8
+              }
+            }
+          }
+        }
+      },
+      {
+        "layout": "fullscreen",
+        "turns": 100,
+        "measured_sessions": 32,
+        "discarded_warmups": 8,
+        "paired_measured_rounds": 8,
+        "raw_sha256": "0c72accb7b83b5d48f1c0b6fb46ccdcc20a16babfd5db772459af01091892f4b",
+        "medians": [
+          {
+            "policy": "ours_hybrid",
+            "ready_ms": 77.74222899752203,
+            "startup_plus_turns_ms": 1384.3773125045118,
+            "cpu_through_turns_ms": 726.6800416666666,
+            "ready_footprint_mb": 45.876112000000006,
+            "after_turns_footprint_mb": 84.919232,
+            "peak_footprint_mb": 91.284416
+          },
+          {
+            "policy": "ours_tier10000",
+            "ready_ms": 79.83112500005518,
+            "startup_plus_turns_ms": 1295.5190624998068,
+            "cpu_through_turns_ms": 786.88275,
+            "ready_footprint_mb": 49.390468,
+            "after_turns_footprint_mb": 93.709284,
+            "peak_footprint_mb": 122.20925199999999
+          },
+          {
+            "policy": "stable_gc2",
+            "ready_ms": 70.22104150019004,
+            "startup_plus_turns_ms": 1364.6780204981042,
+            "cpu_through_turns_ms": 1166.0424374999998,
+            "ready_footprint_mb": 61.408012,
+            "after_turns_footprint_mb": 142.648196,
+            "peak_footprint_mb": 193.6516
+          },
+          {
+            "policy": "node_published_stock",
+            "ready_ms": 218.11343699664576,
+            "startup_plus_turns_ms": 2301.5365624996775,
+            "cpu_through_turns_ms": 1422.7112083333332,
+            "ready_footprint_mb": 82.46088,
+            "after_turns_footprint_mb": 279.25109199999997,
+            "peak_footprint_mb": 288.123028
+          }
+        ],
+        "comparisons": {
+          "node_published_stock": {
+            "ours_hybrid": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": 39.8498666038591,
+                "paired_bootstrap_95_percent": [
+                  36.23066520993291,
+                  41.115140709695574
+                ],
+                "candidate_median": 1384.3773125045118,
+                "reference_median": 2301.5365624996775,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": 48.92287082506701,
+                "paired_bootstrap_95_percent": [
+                  47.619999896755786,
+                  49.8167861368211
+                ],
+                "candidate_median": 726.6800416666666,
+                "reference_median": 1422.7112083333332,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": 68.31755634610366,
+                "paired_bootstrap_95_percent": [
+                  65.4257803361471,
+                  70.50146100367867
+                ],
+                "candidate_median": 91.284416,
+                "reference_median": 288.123028,
+                "paired_rounds": 8
+              }
+            },
+            "ours_tier10000": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": 43.71068947552346,
+                "paired_bootstrap_95_percent": [
+                  40.69066835631465,
+                  44.739360419451344
+                ],
+                "candidate_median": 1295.5190624998068,
+                "reference_median": 2301.5365624996775,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": 44.691322779286224,
+                "paired_bootstrap_95_percent": [
+                  43.408818715882255,
+                  47.9892148268823
+                ],
+                "candidate_median": 786.88275,
+                "reference_median": 1422.7112083333332,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": 57.58435108491224,
+                "paired_bootstrap_95_percent": [
+                  55.742259471800004,
+                  59.47703252211984
+                ],
+                "candidate_median": 122.20925199999999,
+                "reference_median": 288.123028,
+                "paired_rounds": 8
+              }
+            }
+          },
+          "stable_gc2": {
+            "ours_hybrid": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": -1.443512074680986,
+                "paired_bootstrap_95_percent": [
+                  -10.253137390022449,
+                  4.36381588172714
+                ],
+                "candidate_median": 1384.3773125045118,
+                "reference_median": 1364.6780204981042,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": 37.67979463726279,
+                "paired_bootstrap_95_percent": [
+                  32.81558149762376,
+                  39.561806254546305
+                ],
+                "candidate_median": 726.6800416666666,
+                "reference_median": 1166.0424374999998,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": 52.86152244546392,
+                "paired_bootstrap_95_percent": [
+                  48.788038020672694,
+                  54.72821791886935
+                ],
+                "candidate_median": 91.284416,
+                "reference_median": 193.6516,
+                "paired_rounds": 8
+              }
+            },
+            "ours_tier10000": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": 5.067785731102681,
+                "paired_bootstrap_95_percent": [
+                  -0.9350161401081136,
+                  11.114552460377148
+                ],
+                "candidate_median": 1295.5190624998068,
+                "reference_median": 1364.6780204981042,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": 32.5168000156941,
+                "paired_bootstrap_95_percent": [
+                  29.196458715454565,
+                  34.85634362238819
+                ],
+                "candidate_median": 786.88275,
+                "reference_median": 1166.0424374999998,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": 36.892206416058535,
+                "paired_bootstrap_95_percent": [
+                  34.905686031696426,
+                  37.905839972564124
+                ],
+                "candidate_median": 122.20925199999999,
+                "reference_median": 193.6516,
+                "paired_rounds": 8
+              }
+            }
+          },
+          "ours_hybrid": {
+            "ours_tier10000": {
+              "startup_plus_turns_ms": {
+                "reduction_percent": 6.418643905970212,
+                "paired_bootstrap_95_percent": [
+                  1.7948505870423404,
+                  12.073908464850803
+                ],
+                "candidate_median": 1295.5190624998068,
+                "reference_median": 1384.3773125045118,
+                "paired_rounds": 8
+              },
+              "cpu_through_turns_ms": {
+                "reduction_percent": -8.28462388966351,
+                "paired_bootstrap_95_percent": [
+                  -12.087376752234412,
+                  -2.7768418501924463
+                ],
+                "candidate_median": 786.88275,
+                "reference_median": 726.6800416666666,
+                "paired_rounds": 8
+              },
+              "peak_footprint_mb": {
+                "reduction_percent": -33.87745395665345,
+                "paired_bootstrap_95_percent": [
+                  -40.44914812423583,
+                  -25.31966468179794
+                ],
+                "candidate_median": 122.20925199999999,
+                "reference_median": 91.284416,
+                "paired_rounds": 8
+              }
+            }
+          }
+        }
+      }
+    ],
+    "conclusion": "Default hybrid minimizes CPU and footprint. At 100 turns, optional tiering reduces wall time versus the same package hybrid by 6.42% [1.79, 12.07], with more CPU and memory. Both modes beat published Node wall/CPU/footprint in these cohorts. All stable Bun wall confidence intervals cross zero; a stable Bun wall win is not established.",
+    "phase_limitation": "The 20-turn phase was slower than historical runs for all policies, including unchanged controls; 100 turns returned near historical scale. Both startup and turn times increased. No configuration, harness or cache-change defect was identified. Host conditions during that phase were not instrumented, so the cause is unproven. All samples were retained; historical data was not pooled."
+  },
+  "retained_failure_history": [
+    {
+      "stage": "portable-v1",
+      "outcome": "failed",
+      "issue": "Photon image resizing could not find its WASM while original checkout reads were denied.",
+      "correction": "Pinned build transform resolves Photon WASM beside the executable.",
+      "final_status": "Real resized PNG worker proved in v3/v4."
+    },
+    {
+      "stage": "portable-v2",
+      "outcome": "failed",
+      "issue": "Final image worker returned its result but exit was not observed before CLI shutdown.",
+      "correction": "Pinned transform awaits image worker termination instead of discarding its promise.",
+      "final_status": "All 20 observed workers exited in v3/v4; success/error cleanup guards also passed."
+    },
+    {
+      "stage": "reusable-audit-development",
+      "outcome": "earlier attempts rejected",
+      "issue": "Changed consumer/interpreter identity was rejected; a subsequent source-sandbox native diagnostic failed.",
+      "final_status": "Fresh clean-export v4 acceptance and both mapped native diagnostics passed. Earlier evidence was retained, not replaced."
+    }
+  ],
+  "limits": [
+    "Unsigned candidate; checksums/inventory are consistency checks, not publisher authenticity or Apple notarization.",
+    "Single Apple M5/macOS 27 host; no second-host, other Apple CPU or Linux/x64 distribution acceptance claimed here.",
+    "No all providers/OAuth/MCP/plugin coverage, arbitrary extension guarantee, clipboard side-effect testing or production soak.",
+    "Performance compares complete application pipelines. Stable retains prior final-render/Unicode/profile but older driver; publishedNode uses shipping npm bundle without those transforms. Package worker/Photon repairs are outside read-text timing.",
+    "Wall includes installed public shell and two platform/stat child queries. Selected PID survives exec; own-shell pre-exec CPU may remain, while child-query/mock/harness CPU is excluded.",
+    "HOME is inherited commonly; per-process agent/session/work directories are isolated. Warm filesystem/cache conditions are not a cold-start test.",
+    "Local source 32 tests and 2 JavaScript guards are separate from 120 runtime assertions per acceptance revision; these scopes are not aggregated as unique feature coverage.",
+    "No universal fastest, stable Bun wall win or mature production claim. Native-selection sitecounts are startup diagnostics, not a fraction of all executed instructions.",
+    "Sanitized summary preserves identities and checked metrics but excludes actual local paths, credentials and private process inventories. Raw receipts are privately retained."
+  ],
+  "raw_evidence_sha256": {
+    "portable-v3-audit": "3c7685565c8a60ac68e6f32b324d66ec67522429e50297453e724743c534fc92",
+    "portable-v3-receipt": "d3e07d5931d6432e247671e4e7d2cbe46604c00db295eb6f7d0e4a2ae14dbd38",
+    "portable-v4-audit": "9e1c02f1c08c9a77062069a3f7fcc6117d446a5e68c77e89053395af4e7773c6",
+    "portable-v4-receipt": "e31042977877675f1805643da4426f41826e093753cb0732f958ed6ab37e59c1",
+    "installed-benchmark-run": "c4b469631eca2a513267349245785d69f7301c4166f31ca334a9f1eb37f1f698",
+    "installed-benchmark-audit": "0322e2d09d5c9e9d487a8dff88732ccbf9e0afa1ecd5650693d6ede7130fac00",
+    "installed-benchmark-statistics": "d9e7b31b12a7528270163d06fdc3142d43dec578da909f022434c2bc41123e20",
+    "installed-benchmark-20turn-raw": "52109a0c49f57f108e15e899855661ac0f7c54e386a5405b027fbf0100abce51",
+    "installed-benchmark-100turn-raw": "0c72accb7b83b5d48f1c0b6fb46ccdcc20a16babfd5db772459af01091892f4b",
+    "installed-benchmark-controller": "ed083431794dca393e61b7ab97ac4f9fb4df86cf4297046fb7a2b2d19fa03736",
+    "installed-benchmark-phase-diagnostic": "510c9589049ed363d41d9451e671a9fe5259c1707d32c1d2fc21b74f582b6d8a",
+    "exact-archive-install": "ed544d3766e2e053cd7052e70d19aa35a29ca81a114963ad7b75a6bc7d2761e0",
+    "final-local-source-validation": "a4726de9251272cd43dbf0cf2cf352e3f1130de15574c6fb57bef1282efd9096",
+    "final-local-source-unit-log": "28934efd2b477ee27496bd7627ba8ce93901766413450beca767e529acea4dcb",
+    "portable-v1-failure": "e53be6fcd0fe461cd56cb4691909a2d8e236702b65bd6099d682e91be0a13e31",
+    "portable-v2-failure": "610456a693801d543728f64812e8fa987a2d316168e77f7146400b89f0f4aba9"
+  }
+}

@@ -1,0 +1,905 @@
+diff --git a/scripts/build.ts b/scripts/build.ts
+index 016f2217..e7aa7036 100644
+--- a/scripts/build.ts
++++ b/scripts/build.ts
+@@ -438,6 +438,7 @@ const configFlags: { [K in keyof Required<PartialConfig>]: ConfigFlagKind<NonNul
+   buildType: "string",
+   mode: "string",
+   lto: "boolean",
++  appleCpu: "string",
+   pgoGenerate: "string",
+   pgoUse: "string",
+   asan: "boolean",
+diff --git a/scripts/build/config.ts b/scripts/build/config.ts
+index 6feaf589..3f42f3e9 100644
+--- a/scripts/build/config.ts
++++ b/scripts/build/config.ts
+@@ -115,6 +115,8 @@ export interface Config {
+ 
+   // ─── Features (all explicit booleans) ───
+   lto: boolean;
++  /** Explicit Apple Silicon deployment CPU; M5 artifacts require M5 or newer. */
++  appleCpu: "apple-m1" | "apple-m5";
+   /**
+    * Cross-language LTO: rustc emits LLVM bitcode (`-Clinker-plugin-lto`) into
+    * the rlibs so the final lld `-flto=thin` link sees through Rust↔C++
+@@ -363,6 +365,7 @@ export interface PartialConfig {
+   buildType?: BuildType;
+   mode?: Mode;
+   lto?: boolean;
++  appleCpu?: "apple-m1" | "apple-m5";
+   pgoGenerate?: string;
+   pgoUse?: string;
+   asan?: boolean;
+@@ -1005,6 +1008,11 @@ export function resolveConfig(partial: PartialConfig, toolchain: Toolchain): Con
+   // on both repos pinning the same LLVM: tools.ts enforces LLVM_VERSION on
+   // clang and ld.lld (a native macOS link runs that clang's libLTO; lld-link
+   // and ld64.lld are looked up beside it but not version-checked).
++  const appleCpu = partial.appleCpu ?? "apple-m1";
++  if (appleCpu !== "apple-m1" && appleCpu !== "apple-m5")
++    throw new BuildError("--apple-cpu must be apple-m1 or apple-m5");
++  if (partial.appleCpu && !(darwin && arm64))
++    throw new BuildError("--apple-cpu requires macOS ARM64");
+   const ltoDefault = release && !assertions && !asan;
+   let lto = partial.lto ?? ltoDefault;
+   // ASAN and LTO don't mix — ASAN wins (silently, no warn — config is explicit).
+@@ -1353,6 +1361,7 @@ export function resolveConfig(partial: PartialConfig, toolchain: Toolchain): Con
+     mode: "full",
+     lto,
+     crossLangLto,
++    appleCpu,
+     pgoGenerate,
+     pgoUse,
+     asan,
+diff --git a/scripts/build/flags.ts b/scripts/build/flags.ts
+index 3d40f647..c8e19b86 100644
+--- a/scripts/build/flags.ts
++++ b/scripts/build/flags.ts
+@@ -48,9 +48,9 @@ export interface Flag {
+ 
+ export const cpuTargetFlags: Flag[] = [
+   {
+-    flag: "-mcpu=apple-m1",
++    flag: c => `-mcpu=${c.appleCpu}`,
+     when: c => c.darwin && c.arm64,
+-    desc: "Target Apple M1 (works on all Apple Silicon)",
++    desc: "Explicit Apple Silicon CPU target (default M1)",
+   },
+   {
+     flag: ["-march=armv8-a+crc", "-mtune=ampere1"],
+diff --git a/scripts/build/profiles.ts b/scripts/build/profiles.ts
+index 75af0a71..ce51222d 100644
+--- a/scripts/build/profiles.ts
++++ b/scripts/build/profiles.ts
+@@ -136,6 +136,16 @@ export const profiles = {
+     webkit: "prebuilt",
+   },
+ 
++  /** Native M5 build with local WebKit and release link-time optimization. */
++  "m5-aot-release": {
++    buildType: "Release",
++    webkit: "local",
++    os: "darwin",
++    arch: "aarch64",
++    appleCpu: "apple-m5",
++    lto: true,
++  },
++
+   /** Release with local WebKit. */
+   "release-local": {
+     buildType: "Release",
+diff --git a/src/bundler/prelinked_module_graph.rs b/src/bundler/prelinked_module_graph.rs
+index 497b0694..c2ae37a9 100644
+--- a/src/bundler/prelinked_module_graph.rs
++++ b/src/bundler/prelinked_module_graph.rs
+@@ -12,7 +12,7 @@ use bun_js_printer::analyze_transpiled_module::{
+ use crate::analyze_transpiled_module::ModuleInfoSlotTableBuilder;
+ 
+ pub const MAGIC: u32 = 0x474d_4c50; // "PLMG"
+-pub const VERSION: u32 = 2;
++pub const VERSION: u32 = 4;
+ pub const NO_MODULE: u32 = u32::MAX;
+ /// Hash column value of an entry whose name is a sentinel (never looked up by name); sorts last.
+ const SENTINEL_HASH: u32 = u32::MAX;
+@@ -33,7 +33,7 @@ mod module_flags {
+ const PHASE_DEFER_BIT: u32 = 1 << 3;
+ 
+ const HEADER_WORDS: usize = 16;
+-const MODULE_WORDS: usize = 10;
++const MODULE_WORDS: usize = 12;
+ const REQUEST_WORDS: usize = 4;
+ const IMPORT_WORDS: usize = 6;
+ const EXPORT_WORDS: usize = 6;
+@@ -570,8 +570,8 @@ fn serialize(graph: &[Module], string_count: u32, hashes: &[Option<u32>]) -> Vec
+         to_u32(imports_offset),
+         to_u32(exports_offset),
+         to_u32(stars_offset),
+-        0,
+-        0,
++        0, // bindingCount: this producer supplies no whole-program binding facts.
++        to_u32(total), // bindingsOffset: an empty table at the end of the blob.
+         0,
+     ] {
+         put(v);
+@@ -591,6 +591,8 @@ fn serialize(graph: &[Module], string_count: u32, hashes: &[Option<u32>]) -> Vec
+             to_u32(m.exports.len()),
+             to_u32(first_star),
+             to_u32(m.star_exports.len()),
++            0, // firstBinding
++            0, // bindingCount
+         ] {
+             put(v);
+         }
+diff --git a/src/codegen/bundle-functions.ts b/src/codegen/bundle-functions.ts
+index a042b98d..c84a14e6 100644
+--- a/src/codegen/bundle-functions.ts
++++ b/src/codegen/bundle-functions.ts
+@@ -43,6 +43,7 @@
+ // single JSC::SourceProvider. Passing start/end positions to each function's
+ // JSC::SourceCode. JSC does this, but WebCore does not seem to as of writing.
+ import assert from "assert";
++import { createHash } from "node:crypto";
+ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+ import path from "path";
+ import { sliceSourceCode } from "./builtin-parser";
+@@ -417,6 +418,26 @@ export async function bundleBuiltinFunctions({ requireTransformer, typesDir }: B
+     }
+   }
+   const combinedSourceCodeLength = combinedSourceCode.length;
++  // Image keys use offsets in this exact combined source. Include the metadata
++  // that controls executable creation so a different build cannot reuse them.
++  const aotSourceStamp = (
++    createHash("sha256")
++      .update("bun-js-builtins-sidecar-v1\0")
++      .update(combinedSourceCode)
++      .update(JSON.stringify(files.map(({ basename, functions }) => ({
++        basename,
++        functions: functions.map(fn => ({
++          name: fn.name,
++          sourceOffset: fn.sourceOffset,
++          constructAbility: fn.constructAbility,
++          visibility: fn.visibility,
++          overriddenName: fn.overriddenName,
++          alwaysInline: !!fn.directives.alwaysInline,
++        })),
++      }))))
++      .digest()
++      .readBigUInt64BE(0) || 1n
++  ).toString(16);
+ 
+   let additionalPrivateNames = new Set();
+ 
+@@ -434,6 +455,10 @@ export async function bundleBuiltinFunctions({ requireTransformer, typesDir }: B
+     #include "WebCoreJSClientData.h"
+     #include "WebCoreJSBuiltins.h"
+     #include <JavaScriptCore/JSObjectInlines.h>
++    #include <JavaScriptCore/CachedTypes.h>
++    #include <JavaScriptCore/CodeCache.h>
++    #include <JavaScriptCore/ParserError.h>
++    #include <limits>
+     #include "BunBuiltinNames.h"
+ 
+     // The builtin function sources are linked at the start of bun_internal_modules_data
+@@ -483,8 +508,15 @@ ${basename}BuiltinsWrapper::${basename}BuiltinsWrapper(JSC::VM& vm, RefPtr<JSC::
+ 
+   bundledCPP += `
+ RefPtr<JSC::SourceProvider> createBuiltinsSourceProvider() {
+-    return JSC::StringSourceProvider::create(StringImpl::createWithoutCopying(internalCombinedSource), SourceOrigin(), String(), SourceTaintedOrigin());
++    auto provider = JSC::StringSourceProvider::create(StringImpl::createWithoutCopying(internalCombinedSource), SourceOrigin(), String(), SourceTaintedOrigin());
++    provider->setAOTModuleID(builtinFunctionsAOTModuleID);
++#if ENABLE(FTL_JIT)
++    JSC::AOT::setEmbedderSourceStamp(builtinFunctionsAOTSourceStamp());
++#endif
++    return provider;
+ }
++
++uint64_t builtinFunctionsAOTSourceStamp() { return 0x${aotSourceStamp}ULL; }
+ `;
+ 
+   bundledCPP += `
+@@ -492,6 +524,32 @@ JSBuiltinFunctions::JSBuiltinFunctions(JSC::VM& vm, RefPtr<JSC::SourceProvider>
+   ${files.map(({ basename }) => `m_${low(basename)}Builtins(vm, provider, builtinNames)`).join(", ")}
+ {}
+ 
++std::optional<unsigned> addBuiltinFunctionsToAOTLink(JSC::BytecodeLinkEncoder& encoder, JSC::VM& vm, BunBuiltinNames& names) {
++    RELEASE_ASSERT(&encoder.vm() == &vm);
++    JSBuiltinFunctions builtins(vm, createBuiltinsSourceProvider(), names);
++    unsigned added = 0;
++    auto add = [&](JSC::UnlinkedFunctionExecutable* executable, const JSC::SourceCode& source) {
++        JSC::ParserError error;
++        JSC::recursivelyGenerateUnlinkedCodeBlocksForFunction(vm, executable, source, error, std::numeric_limits<unsigned>::max());
++        if (error.isValid()) {
++            dataLogLn("AOT: could not generate Bun builtin ", executable->name().string(), ": ", error.message());
++            return false;
++        }
++        encoder.addBuiltinFunction(executable, source, static_cast<unsigned>(builtinFunctionsAOTSourceStamp()), JSC::BytecodeOrderNames { });
++        ++added;
++        return true;
++    };
++`;
++  for (const { basename, functions } of files) {
++    const lowerBasename = low(basename);
++    for (const fn of functions) {
++      const codeName = `${lowerBasename}${cap(fn.name)}Code`;
++      bundledCPP += `    if (!add(builtins.${lowerBasename}Builtins().${codeName}Executable(), builtins.${lowerBasename}Builtins().${codeName}Source())) return std::nullopt;\n`;
++    }
++  }
++  bundledCPP += `    return added;
++}
++
+ void JSBuiltinFunctions::exportNames() {
+ `;
+ 
+@@ -594,12 +652,18 @@ JSBuiltinInternalFunctions::JSBuiltinInternalFunctions(JSC::VM& vm) : m_vm(vm)
+     #include <JavaScriptCore/UnlinkedFunctionExecutable.h>
+     #include <JavaScriptCore/VM.h>
+     #include <JavaScriptCore/WeakInlines.h>
++    #include <optional>
+ 
+     namespace JSC {
+     class FunctionExecutable;
++    class BytecodeLinkEncoder;
+     }
+ 
+     namespace WebCore {
++    class BunBuiltinNames;
++    static constexpr uint32_t builtinFunctionsAOTModuleID = 0xb017ffffu;
++    uint64_t builtinFunctionsAOTSourceStamp();
++    std::optional<unsigned> addBuiltinFunctionsToAOTLink(JSC::BytecodeLinkEncoder&, JSC::VM&, BunBuiltinNames&);
+     `;
+   for (const { basename, functions, internal } of files) {
+     bundledHeader += `/* ${basename}.ts */
+diff --git a/src/jsc/JSType.rs b/src/jsc/JSType.rs
+index 3c21ec7b..7fd231ec 100644
+--- a/src/jsc/JSType.rs
++++ b/src/jsc/JSType.rs
+@@ -177,48 +177,50 @@ impl JSType {
+     /// ```
+     pub const FunctionExecutable: JSType = JSType(12);
+ 
+-    pub const UnlinkedFunctionExecutable: JSType = JSType(13);
+-    pub const UnlinkedProgramCodeBlock: JSType = JSType(14);
+-    pub const UnlinkedModuleProgramCodeBlock: JSType = JSType(15);
+-    pub const UnlinkedEvalCodeBlock: JSType = JSType(16);
+-    pub const UnlinkedFunctionCodeBlock: JSType = JSType(17);
++    // The pinned AOT JSC branch inserts ShortFunctionExecutableType before this type.
++    // Keep these cell tags synchronized with JSType.h; the C++ integration checks the ABI.
++    pub const UnlinkedFunctionExecutable: JSType = JSType(14);
++    pub const UnlinkedProgramCodeBlock: JSType = JSType(15);
++    pub const UnlinkedModuleProgramCodeBlock: JSType = JSType(16);
++    pub const UnlinkedEvalCodeBlock: JSType = JSType(17);
++    pub const UnlinkedFunctionCodeBlock: JSType = JSType(18);
+ 
+     /// Compiled bytecode block ready for execution.
+-    pub const CodeBlock: JSType = JSType(18);
++    pub const CodeBlock: JSType = JSType(19);
+ 
+-    pub const JSCellButterfly: JSType = JSType(19);
+-    pub const JSSourceCode: JSType = JSType(20);
++    pub const JSCellButterfly: JSType = JSType(20);
++    pub const JSSourceCode: JSType = JSType(21);
+ 
+     /// Slim promise reaction (no rejection handler / context payload).
+     /// Internal object used in the promise resolution mechanism.
+-    pub(crate) const SlimPromiseReaction: JSType = JSType(21);
++    pub(crate) const SlimPromiseReaction: JSType = JSType(22);
+ 
+     /// Full promise reaction (carries onFulfilled/onRejected and async context).
+     /// Internal object used in the promise resolution mechanism.
+-    pub(crate) const FullPromiseReaction: JSType = JSType(22);
++    pub(crate) const FullPromiseReaction: JSType = JSType(23);
+ 
+     /// Context object for Promise.all() operations.
+     /// Internal object used to track the state of Promise.all() resolution.
+     /// Note: Moved before ObjectType in recent WebKit.
+-    pub(crate) const PromiseAllContext: JSType = JSType(23);
++    pub(crate) const PromiseAllContext: JSType = JSType(24);
+ 
+     /// Global context for Promise.all() (new in recent WebKit).
+-    pub(crate) const PromiseAllGlobalContext: JSType = JSType(24);
++    pub(crate) const PromiseAllGlobalContext: JSType = JSType(25);
+ 
+     /// Base JavaScript object type.
+     /// ```js
+     /// {}
+     /// new Object()
+     /// ```
+-    pub const Object: JSType = JSType(33);
++    pub const Object: JSType = JSType(34);
+ 
+     /// Optimized object type for object literals with fixed properties.
+     /// ```js
+     /// { a: 1, b: 2 }
+     /// ```
+-    pub const FinalObject: JSType = JSType(34);
++    pub const FinalObject: JSType = JSType(35);
+ 
+-    pub const JSCallee: JSType = JSType(35);
++    pub const JSCallee: JSType = JSType(36);
+ 
+     /// JavaScript function object created from JavaScript source code.
+     /// ```js
+@@ -228,7 +230,7 @@ impl JSType {
+     ///   method() {}
+     /// }
+     /// ```
+-    pub const JSFunction: JSType = JSType(36);
++    pub const JSFunction: JSType = JSType(37);
+ 
+     /// Built-in function implemented in native code.
+     /// ```js
+@@ -237,21 +239,21 @@ impl JSType {
+     /// parseInt
+     /// console.log
+     /// ```
+-    pub const InternalFunction: JSType = JSType(37);
++    pub const InternalFunction: JSType = JSType(38);
+ 
+     /// Boxed Boolean object.
+     /// ```js
+     /// new Boolean(true)
+     /// new Boolean(false)
+     /// ```
+-    pub const BooleanObject: JSType = JSType(39);
++    pub const BooleanObject: JSType = JSType(40);
+ 
+     /// Boxed Number object.
+     /// ```js
+     /// new Number(42)
+     /// new Number(3.14)
+     /// ```
+-    pub const NumberObject: JSType = JSType(40);
++    pub const NumberObject: JSType = JSType(41);
+ 
+     /// JavaScript Error object and its subclasses.
+     /// ```js
+@@ -259,9 +261,9 @@ impl JSType {
+     /// new TypeError()
+     /// throw new RangeError()
+     /// ```
+-    pub const ErrorInstance: JSType = JSType(41);
++    pub const ErrorInstance: JSType = JSType(42);
+ 
+-    pub const GlobalProxy: JSType = JSType(42);
++    pub const GlobalProxy: JSType = JSType(43);
+ 
+     /// Arguments object for function parameters.
+     /// ```js
+@@ -270,10 +272,10 @@ impl JSType {
+     ///   console.log(arguments.length);
+     /// }
+     /// ```
+-    pub(crate) const DirectArguments: JSType = JSType(43);
++    pub(crate) const DirectArguments: JSType = JSType(44);
+ 
+-    pub(crate) const ScopedArguments: JSType = JSType(44);
+-    pub(crate) const ClonedArguments: JSType = JSType(45);
++    pub(crate) const ScopedArguments: JSType = JSType(45);
++    pub(crate) const ClonedArguments: JSType = JSType(46);
+ 
+     /// JavaScript Array object.
+     /// ```js
+@@ -282,94 +284,94 @@ impl JSType {
+     /// new Array(10)
+     /// Array.from(iterable)
+     /// ```
+-    pub const Array: JSType = JSType(46);
++    pub const Array: JSType = JSType(47);
+ 
+     /// Array subclass created through class extension.
+     /// ```js
+     /// class MyArray extends Array {}
+     /// const arr = new MyArray();
+     /// ```
+-    pub const DerivedArray: JSType = JSType(47);
++    pub const DerivedArray: JSType = JSType(48);
+ 
+     /// ArrayBuffer for binary data storage.
+     /// ```js
+     /// new ArrayBuffer(1024)
+     /// ```
+-    pub const ArrayBuffer: JSType = JSType(48);
++    pub const ArrayBuffer: JSType = JSType(49);
+ 
+     /// Typed array for 8-bit signed integers.
+     /// ```js
+     /// new Int8Array(buffer)
+     /// new Int8Array([1, -1, 127])
+     /// ```
+-    pub const Int8Array: JSType = JSType(49);
++    pub const Int8Array: JSType = JSType(50);
+ 
+     /// Typed array for 8-bit unsigned integers.
+     /// ```js
+     /// new Uint8Array(buffer)
+     /// new Uint8Array([0, 255])
+     /// ```
+-    pub const Uint8Array: JSType = JSType(50);
++    pub const Uint8Array: JSType = JSType(51);
+ 
+     /// Typed array for 8-bit unsigned integers with clamping.
+     /// ```js
+     /// new Uint8ClampedArray([0, 300]) // 300 becomes 255
+     /// ```
+-    pub const Uint8ClampedArray: JSType = JSType(51);
++    pub const Uint8ClampedArray: JSType = JSType(52);
+ 
+     /// Typed array for 16-bit signed integers.
+     /// ```js
+     /// new Int16Array(buffer)
+     /// ```
+-    pub const Int16Array: JSType = JSType(52);
++    pub const Int16Array: JSType = JSType(53);
+ 
+     /// Typed array for 16-bit unsigned integers.
+     /// ```js
+     /// new Uint16Array(buffer)
+     /// ```
+-    pub const Uint16Array: JSType = JSType(53);
++    pub const Uint16Array: JSType = JSType(54);
+ 
+     /// Typed array for 32-bit signed integers.
+     /// ```js
+     /// new Int32Array(buffer)
+     /// ```
+-    pub const Int32Array: JSType = JSType(54);
++    pub const Int32Array: JSType = JSType(55);
+ 
+     /// Typed array for 32-bit unsigned integers.
+     /// ```js
+     /// new Uint32Array(buffer)
+     /// ```
+-    pub const Uint32Array: JSType = JSType(55);
++    pub const Uint32Array: JSType = JSType(56);
+ 
+     /// Typed array for 16-bit floating point numbers.
+     /// ```js
+     /// new Float16Array(buffer)
+     /// ```
+-    pub const Float16Array: JSType = JSType(56);
++    pub const Float16Array: JSType = JSType(57);
+ 
+     /// Typed array for 32-bit floating point numbers.
+     /// ```js
+     /// new Float32Array(buffer)
+     /// ```
+-    pub const Float32Array: JSType = JSType(57);
++    pub const Float32Array: JSType = JSType(58);
+ 
+     /// Typed array for 64-bit floating point numbers.
+     /// ```js
+     /// new Float64Array(buffer)
+     /// ```
+-    pub const Float64Array: JSType = JSType(58);
++    pub const Float64Array: JSType = JSType(59);
+ 
+     /// Typed array for 64-bit signed BigInt values.
+     /// ```js
+     /// new BigInt64Array([123n, -456n])
+     /// ```
+-    pub const BigInt64Array: JSType = JSType(59);
++    pub const BigInt64Array: JSType = JSType(60);
+ 
+     /// Typed array for 64-bit unsigned BigInt values.
+     /// ```js
+     /// new BigUint64Array([123n, 456n])
+     /// ```
+-    pub const BigUint64Array: JSType = JSType(60);
++    pub const BigUint64Array: JSType = JSType(61);
+ 
+     /// DataView for flexible binary data access.
+     /// ```js
+@@ -377,7 +379,7 @@ impl JSType {
+     /// view.getInt32(0)
+     /// view.setFloat64(8, 3.14)
+     /// ```
+-    pub const DataView: JSType = JSType(61);
++    pub const DataView: JSType = JSType(62);
+ 
+     /// Global object containing all global variables and functions.
+     /// ```js
+@@ -385,12 +387,12 @@ impl JSType {
+     /// window // in browsers
+     /// global // in Node.js
+     /// ```
+-    pub const GlobalObject: JSType = JSType(62);
++    pub const GlobalObject: JSType = JSType(63);
+ 
+-    pub const GlobalLexicalEnvironment: JSType = JSType(63);
+-    pub const LexicalEnvironment: JSType = JSType(64);
+-    pub const ModuleEnvironment: JSType = JSType(65);
+-    pub const StrictEvalActivation: JSType = JSType(66);
++    pub const GlobalLexicalEnvironment: JSType = JSType(64);
++    pub const LexicalEnvironment: JSType = JSType(65);
++    pub const ModuleEnvironment: JSType = JSType(66);
++    pub const StrictEvalActivation: JSType = JSType(67);
+ 
+     /// Scope object for with statements.
+     /// ```js
+@@ -398,16 +400,16 @@ impl JSType {
+     ///   prop; // looks up prop in obj first
+     /// }
+     /// ```
+-    pub const WithScope: JSType = JSType(67);
++    pub const WithScope: JSType = JSType(68);
+ 
+     /// Namespace object for ES6 modules.
+     /// ```js
+     /// import * as ns from 'module';
+     /// ns.exportedFunction()
+     /// ```
+-    pub const ModuleNamespaceObject: JSType = JSType(70);
++    pub const ModuleNamespaceObject: JSType = JSType(71);
+ 
+-    pub(crate) const ShadowRealm: JSType = JSType(71);
++    pub(crate) const ShadowRealm: JSType = JSType(72);
+ 
+     /// Regular expression object.
+     /// ```js
+@@ -415,7 +417,7 @@ impl JSType {
+     /// new RegExp('pattern', 'flags')
+     /// /abc/gi
+     /// ```
+-    pub const RegExpObject: JSType = JSType(72);
++    pub const RegExpObject: JSType = JSType(73);
+ 
+     /// JavaScript Date object for date/time operations.
+     /// ```js
+@@ -423,7 +425,7 @@ impl JSType {
+     /// new Date('2023-01-01')
+     /// Date.now()
+     /// ```
+-    pub const JSDate: JSType = JSType(73);
++    pub const JSDate: JSType = JSType(74);
+ 
+     /// Proxy object that intercepts operations on another object.
+     /// ```js
+@@ -431,7 +433,7 @@ impl JSType {
+     ///   get(obj, prop) { return obj[prop]; }
+     /// })
+     /// ```
+-    pub const ProxyObject: JSType = JSType(74);
++    pub const ProxyObject: JSType = JSType(75);
+ 
+     /// Generator object created by generator functions.
+     /// ```js
+@@ -439,7 +441,7 @@ impl JSType {
+     /// const g = gen();
+     /// g.next()
+     /// ```
+-    pub(crate) const Generator: JSType = JSType(75);
++    pub(crate) const Generator: JSType = JSType(76);
+ 
+     /// Async generator object for asynchronous iteration.
+     /// ```js
+@@ -447,17 +449,17 @@ impl JSType {
+     ///   yield await promise;
+     /// }
+     /// ```
+-    pub(crate) const AsyncGenerator: JSType = JSType(77);
++    pub(crate) const AsyncGenerator: JSType = JSType(78);
+ 
+     /// Iterator for Array objects.
+     /// ```js
+     /// [1,2,3][Symbol.iterator]()
+     /// for (const x of array) {}
+     /// ```
+-    pub(crate) const JSArrayIterator: JSType = JSType(78);
++    pub(crate) const JSArrayIterator: JSType = JSType(79);
+ 
+-    pub(crate) const Iterator: JSType = JSType(79);
+-    pub(crate) const IteratorHelper: JSType = JSType(80);
++    pub(crate) const Iterator: JSType = JSType(80);
++    pub(crate) const IteratorHelper: JSType = JSType(81);
+ 
+     /// Iterator for Map objects.
+     /// ```js
+@@ -466,30 +468,30 @@ impl JSType {
+     /// map.entries()
+     /// for (const [k,v] of map) {}
+     /// ```
+-    pub(crate) const MapIterator: JSType = JSType(81);
++    pub(crate) const MapIterator: JSType = JSType(82);
+ 
+     /// Iterator for Set objects.
+     /// ```js
+     /// set.values()
+     /// for (const value of set) {}
+     /// ```
+-    pub(crate) const SetIterator: JSType = JSType(82);
++    pub(crate) const SetIterator: JSType = JSType(83);
+ 
+     /// Iterator for String objects.
+     /// ```js
+     /// 'hello'[Symbol.iterator]()
+     /// for (const char of string) {}
+     /// ```
+-    pub(crate) const StringIterator: JSType = JSType(83);
++    pub(crate) const StringIterator: JSType = JSType(84);
+ 
+-    pub(crate) const WrapForValidIterator: JSType = JSType(84);
++    pub(crate) const WrapForValidIterator: JSType = JSType(85);
+ 
+     /// Iterator for RegExp string matching.
+     /// ```js
+     /// 'abc'.matchAll(/./g)
+     /// for (const match of string.matchAll(regex)) {}
+     /// ```
+-    pub(crate) const RegExpStringIterator: JSType = JSType(85);
++    pub(crate) const RegExpStringIterator: JSType = JSType(86);
+ 
+     /// JavaScript Promise object for asynchronous operations.
+     /// ```js
+@@ -497,7 +499,7 @@ impl JSType {
+     /// Promise.resolve(42)
+     /// async function foo() { await promise; }
+     /// ```
+-    pub const JSPromise: JSType = JSType(87);
++    pub const JSPromise: JSType = JSType(88);
+ 
+     /// JavaScript Map object for key-value storage.
+     /// ```js
+@@ -505,7 +507,7 @@ impl JSType {
+     /// map.set(key, value)
+     /// map.get(key)
+     /// ```
+-    pub const Map: JSType = JSType(88);
++    pub const Map: JSType = JSType(89);
+ 
+     /// JavaScript Set object for unique value storage.
+     /// ```js
+@@ -513,33 +515,33 @@ impl JSType {
+     /// set.add(value)
+     /// set.has(value)
+     /// ```
+-    pub const Set: JSType = JSType(89);
++    pub const Set: JSType = JSType(90);
+ 
+     /// WeakMap for weak key-value references.
+     /// ```js
+     /// new WeakMap()
+     /// weakMap.set(object, value)
+     /// ```
+-    pub const WeakMap: JSType = JSType(90);
++    pub const WeakMap: JSType = JSType(91);
+ 
+     /// WeakSet for weak value references.
+     /// ```js
+     /// new WeakSet()
+     /// weakSet.add(object)
+     /// ```
+-    pub const WeakSet: JSType = JSType(91);
++    pub const WeakSet: JSType = JSType(92);
+ 
+-    pub(crate) const WebAssemblyModule: JSType = JSType(92);
+-    pub(crate) const WebAssemblyInstance: JSType = JSType(93);
+-    pub(crate) const WebAssemblyGCObject: JSType = JSType(94);
++    pub(crate) const WebAssemblyModule: JSType = JSType(93);
++    pub(crate) const WebAssemblyInstance: JSType = JSType(94);
++    pub(crate) const WebAssemblyGCObject: JSType = JSType(95);
+ 
+     /// Boxed String object.
+     /// ```js
+     /// new String("hello")
+     /// ```
+-    pub const StringObject: JSType = JSType(95);
++    pub const StringObject: JSType = JSType(96);
+ 
+-    pub const DerivedStringObject: JSType = JSType(96);
++    pub const DerivedStringObject: JSType = JSType(97);
+ 
+     pub const Event: JSType = JSType(0b11101111);
+     pub const DOMWrapper: JSType = JSType(0b11101110);
+diff --git a/src/jsc/bindings/BunClientData.cpp b/src/jsc/bindings/BunClientData.cpp
+index 6434aa34..e9d548f5 100644
+--- a/src/jsc/bindings/BunClientData.cpp
++++ b/src/jsc/bindings/BunClientData.cpp
+@@ -287,6 +287,11 @@ void JSVMClientData::setDecoderStringTable(std::span<const uint8_t> bytes)
+ 
+ extern "C" bool Bun__standalonePrelinkedModuleGraph(const uint8_t** blob, size_t* blobLength, const uint8_t** slotTable, size_t* slotTableLength);
+ 
++// Keep the wire format in src/bundler/prelinked_module_graph.rs synchronized with JSC.
++static_assert(JSC::PrelinkedModuleGraph::currentVersion == 4);
++static_assert(sizeof(JSC::PrelinkedModuleGraph::Header) == 16 * sizeof(uint32_t));
++static_assert(sizeof(JSC::PrelinkedModuleGraph::Module) == 12 * sizeof(uint32_t));
++
+ JSC::PrelinkedModuleGraph* JSVMClientData::prelinkedModuleGraph(JSC::VM& vm)
+ {
+     if (!m_prelinkedModuleGraphChecked) [[unlikely]] {
+@@ -304,6 +309,12 @@ JSC::PrelinkedModuleGraph* JSVMClientData::prelinkedModuleGraph(JSC::VM& vm)
+             memcpy(&count, slotTable, sizeof(count));
+             if (count <= (slotTableLength - sizeof(uint32_t)) / sizeof(uint32_t))
+                 m_prelinkedModuleGraph = JSC::PrelinkedModuleGraph::tryCreate(vm, *m_decoderStringTable, { blob, blobLength }, { reinterpret_cast<const uint32_t*>(slotTable + sizeof(uint32_t)), count });
++            if (JSC::Options::verboseDiskCache()) [[unlikely]] {
++                if (m_prelinkedModuleGraph)
++                    dataLogLn("BytecodeCache: accepted prelinked module graph v", JSC::PrelinkedModuleGraph::currentVersion, " modules ", m_prelinkedModuleGraph->moduleCount());
++                else
++                    dataLogLn("BytecodeCache: rejected prelinked module graph; source parsing required");
++            }
+         }
+     }
+     return m_prelinkedModuleGraph.get();
+diff --git a/src/jsc/bindings/ErrorStackTrace.cpp b/src/jsc/bindings/ErrorStackTrace.cpp
+index 0b0e9e59..e7f5a06c 100644
+--- a/src/jsc/bindings/ErrorStackTrace.cpp
++++ b/src/jsc/bindings/ErrorStackTrace.cpp
+@@ -228,7 +228,7 @@ JSCStackFrame::JSCStackFrame(JSC::VM& vm, const JSC::StackFrame& frame)
+         auto lineColumn = frame.computeLineAndColumn();
+         m_sourcePositions = { OrdinalNumber::fromOneBasedInt(lineColumn.line), OrdinalNumber::fromOneBasedInt(lineColumn.column) };
+         m_sourcePositionsState = SourcePositionsState::Calculated;
+-        auto codeType = frame.codeBlock()->codeType();
++        auto codeType = frame.codeType();
+         if (codeType == JSC::FunctionCode || codeType == JSC::EvalCode) {
+             m_isFunctionOrEval = true;
+         }
+@@ -411,7 +411,8 @@ String sourceURL(JSC::VM& vm, const JSC::StackFrame& frame)
+         return "[native code]"_s;
+     }
+ 
+-    return sourceURL(frame.codeBlock());
++    auto* executable = frame.ownerExecutable();
++    return executable ? sourceURL(executable->source()) : String();
+ }
+ 
+ String sourceURL(JSC::StackVisitor& visitor)
+@@ -513,12 +514,12 @@ String functionName(JSC::VM& vm, const JSC::StackFrame& frame, unsigned int* fla
+     JSC::JSObject* callee = frame.callee() ? frame.callee()->getObject() : nullptr;
+ 
+     if (frame.hasLineAndColumnInfo()) {
+-        auto* codeblock = frame.codeBlock();
+-        if (codeblock->isConstructor()) {
++        // AOT frames cannot materialize a CodeBlock during GC finalization.
++        if (frame.isConstructor()) {
+             isConstructor = true;
+         }
+ 
+-        auto codeType = codeblock->codeType();
++        auto codeType = frame.codeType();
+         switch (codeType) {
+         case JSC::CodeType::FunctionCode:
+         case JSC::CodeType::EvalCode: {
+@@ -532,7 +533,7 @@ String functionName(JSC::VM& vm, const JSC::StackFrame& frame, unsigned int* fla
+             if (callee) {
+                 functionName = Zig::functionName(vm, callee);
+ 
+-                if (flags && codeblock->unlinkedCodeBlock()->isBuiltinFunction()) {
++                if (flags && frame.isBuiltinFunction()) {
+                     *flags |= static_cast<unsigned int>(FunctionNameFlags::Builtin);
+                 }
+             }
+@@ -544,7 +545,9 @@ String functionName(JSC::VM& vm, const JSC::StackFrame& frame, unsigned int* fla
+         }
+ 
+         if (functionName.isEmpty()) {
+-            functionName = Zig::functionName(vm, codeblock);
++            if (auto* executable = dynamicDowncast<JSC::FunctionExecutable>(frame.ownerExecutable())) {
++                functionName = executable->ecmaNameWithoutGC();
++            }
+         }
+     } else if (callee) {
+         functionName = Zig::functionName(vm, callee);
+diff --git a/src/jsc/bindings/ZigGlobalObject.cpp b/src/jsc/bindings/ZigGlobalObject.cpp
+index 9de807ad..261751d0 100644
+--- a/src/jsc/bindings/ZigGlobalObject.cpp
++++ b/src/jsc/bindings/ZigGlobalObject.cpp
+@@ -1,4 +1,21 @@
+ #include "root.h"
++#include "JavaScriptCore/JSType.h"
++
++// Rust reads these tags directly from JSCell. Reject an incompatible engine ABI.
++static_assert(JSC::FunctionExecutableType == 12, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::ShortFunctionExecutableType == 13, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::UnlinkedFunctionExecutableType == 14, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::ObjectType == 34, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::ArrayType == 47, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::Int8ArrayType == 50, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::DataViewType == 62, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::GlobalObjectType == 63, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::JSDateType == 74, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::JSPromiseType == 88, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::JSMapType == 89, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::JSSetType == 90, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::StringObjectType == 96, "Pinned native AOT JSC cell tag changed");
++static_assert(JSC::InternalFieldTupleType == 98, "Pinned native AOT JSC cell tag changed");
+ 
+ #include "ZigGlobalObject.h"
+ #include "BunModuleRegistry.h"
+@@ -296,6 +313,9 @@ extern "C" void JSCInitialize(const char* envp[], size_t envc, void (*onCrash)(c
+         std::set_terminate([]() { Zig__GlobalObject__onCrash(); });
+         WTF::initializeMainThread();
+ 
++        // The experimental AOT engine requires compiler hooks before option finalization.
++        JSC::installCompilers();
++
+         // Use JSC::initialize with a callback to set Options during initialization.
+         // The callback runs BEFORE IPInt::initialize() so we can configure WASM options early.
+         // Under ASAN+Linux, JSC's notifyOptionsChanged() already disables
+diff --git a/src/jsc/bindings/ZigSourceProvider.cpp b/src/jsc/bindings/ZigSourceProvider.cpp
+index fbfaa2ff..848629dc 100644
+--- a/src/jsc/bindings/ZigSourceProvider.cpp
++++ b/src/jsc/bindings/ZigSourceProvider.cpp
+@@ -16,7 +16,9 @@
+ #include <JavaScriptCore/SourceCodeKey.h>
+ #include <mimalloc.h>
+ #include <JavaScriptCore/CodeCache.h>
++#include <wtf/FileSystem.h>
+ #include "BunBuiltinNames.h"
++#include "WebCoreJSBuiltins.h"
+ 
+ namespace Zig {
+ 
+@@ -174,6 +176,11 @@ static thread_local std::unique_ptr<WebCore::BunBuiltinNames> s_builtinNamesForB
+ JSC::VM& vmForBytecodeCache()
+ {
+     if (!s_vmForBytecodeCache) {
++#if ENABLE(FTL_JIT)
++        // This lean VM has no JSVMClientData/provider creation to initialize the
++        // embedder's image identity. Set it before either source or linked export.
++        JSC::AOT::setEmbedderSourceStamp(WebCore::builtinFunctionsAOTSourceStamp());
++#endif
+         const auto heapSize = JSC::HeapType::Small;
+         auto vmPtr = JSC::VM::tryCreate(heapSize);
+         vmPtr->refSuppressingSaferCPPChecking();
+@@ -272,6 +279,19 @@ static bool generateCachedByteCodeFromSourceCode(const BunString* sourceProvider
+     if (!cachedBytecode)
+         return false;
+ 
++    // The exact bundled source and bytecode settings must match the executable's module.
++    if (const char* imagePath = getenv("PI_NATIVE_AOT_OUT")) {
++        const char* moduleURL = getenv("PI_NATIVE_AOT_MODULE_URL");
++        if (moduleURL && sourceProviderURL->toWTFString() == String::fromUTF8(moduleURL)) {
++            auto image = JSC::aotCompileImage(vm, sourceCode, isModule, optimize ? JSC::OptimizeBytecode::Yes : JSC::OptimizeBytecode::No);
++            auto written = image.isEmpty() ? std::nullopt : FileSystem::overwriteEntireFile(String::fromUTF8(imagePath), image.span());
++            if (!written || *written != image.size()) {
++                dataLogLn("Pi native AOT: could not write image to ", imagePath);
++                return false;
++            }
++        }
++    }
++
+     cachedBytecode->ref();
+     *cachedBytecodePtr = cachedBytecode.get();
+     *outputByteCode = cachedBytecode->span().data();
+@@ -301,6 +321,8 @@ extern "C" JSC::BytecodeLinkEncoder* Bun__BytecodeLinkEncoder__create(JSC::Encod
+     hints.knownFunctions.append(std::span { knownFunctions, knownFunctionCount });
+     hints.evaluatedModules.append(std::span { evaluatedModules, evaluatedModuleCount });
+     hints.notEvaluatedModules.append(std::span { notEvaluatedModules, notEvaluatedModuleCount });
++    hints.compileAheadOfTime = getenv("PI_NATIVE_AOT_LINKED") && getenv("PI_NATIVE_AOT_OUT");
++    hints.aotHasStaticHeap = false;
+     return new JSC::BytecodeLinkEncoder(vm, externalStrings, WTF::move(hints));
+ }
+ 
+@@ -336,11 +358,30 @@ extern "C" bool Bun__BytecodeLinkEncoder__addModule(JSC::BytecodeLinkEncoder* en
+ static_assert(JSC::BytecodeLinkEncoder::numberOfRegions == 6, "bun_resolver::LINKED_BYTECODE_REGION_COUNT");
+ extern "C" bool Bun__BytecodeLinkEncoder__finish(JSC::BytecodeLinkEncoder* encoder, const uint8_t** outputByteCode, size_t* outputByteCodeSize, JSC::CachedBytecode** cachedBytecodePtr, uint32_t* entryOffsets, size_t entryOffsetCount, uint32_t* regionEnds, uint32_t* namedHotFunctions, uint32_t* placedHotFunctions, uint32_t* functionsWithoutName)
+ {
+-    JSC::JSLockHolder locker(vmOfBytecodeLinkEncoder(*encoder));
++    auto& vm = vmOfBytecodeLinkEncoder(*encoder);
++    JSC::JSLockHolder locker(vm);
++    unsigned sidecarBuiltinCount = 0;
++    if (getenv("PI_NATIVE_AOT_OUT") && getenv("PI_NATIVE_AOT_LINKED")) {
++        ensureBuiltinNamesForBytecodeCache(vm);
++        auto added = WebCore::addBuiltinFunctionsToAOTLink(*encoder, vm, *s_builtinNamesForBytecodeCache);
++        if (!added)
++            return false;
++        sidecarBuiltinCount = *added;
++    }
+     auto result = encoder->finish();
+-    if (!result.payload || result.entryOffsets.size() != entryOffsetCount)
++    if (!result.payload || result.entryOffsets.size() != entryOffsetCount + sidecarBuiltinCount)
+         return false;
+-    memcpySpan(std::span { entryOffsets, entryOffsetCount }, result.entryOffsets.span());
++    if (const char* imagePath = getenv("PI_NATIVE_AOT_OUT"); imagePath && getenv("PI_NATIVE_AOT_LINKED")) {
++        auto written = result.aotImage.isEmpty() ? std::nullopt : FileSystem::overwriteEntireFile(String::fromUTF8(imagePath), result.aotImage.span());
++        if (!written || *written != result.aotImage.size()) {
++            dataLogLn("Pi native AOT: could not write linked image to ", imagePath);
++            return false;
++        }
++        dataLogLn("Pi native AOT: linked image bytes ", result.aotImage.size(), " modules ", result.entryOffsets.size());
++    }
++    // The caller has one entry per application/internal module it added. Bun's
++    // sidecar-only roots were appended after those and need no runtime entries.
++    memcpySpan(std::span { entryOffsets, entryOffsetCount }, result.entryOffsets.span().first(entryOffsetCount));
+     memcpySpan(std::span { regionEnds, JSC::BytecodeLinkEncoder::numberOfRegions }, std::span<const uint32_t> { result.regionEnds });
+     *namedHotFunctions = result.namedHotFunctions;
+     *placedHotFunctions = result.placedHotFunctions;

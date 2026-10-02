@@ -1,0 +1,28 @@
+{
+  "0.85.1": {
+    "source_commit": "d981de1229ef899957bbe968bc8dcda02a21f477",
+    "tty_main_sha256": "bb0aa846d5976671bfdcdd81ffc1180653c7099bdc42f80945175a7d704ab6b9",
+    "packages": {
+      "@earendil-works/pi-coding-agent": "coding-agent",
+      "@earendil-works/pi-ai": "ai",
+      "@earendil-works/pi-agent-core": "agent",
+      "@earendil-works/pi-tui": "tui"
+    },
+    "entrypoints": ["dist/bun/cli.js", "dist/utils/image-resize-worker.js"]
+  },
+  "1.0.0": {
+    "source_commit": "a13d35a742c6ef8462812a28fbe1d8c8b7431c32",
+    "tty_main_sha256": "d5f850220fa7ed946b6e6d21593fee33e2ab7ce815cc40fb380c47a856e0301f",
+    "packages": {
+      "@earendil-works/pi-coding-agent": "coding-agent",
+      "@earendil-works/pi-ai": "ai",
+      "@earendil-works/pi-agent-core": "agent",
+      "@earendil-works/pi-tui": "tui",
+      "@earendil-works/chord": "chord",
+      "@earendil-works/pi-codemode": "codemode",
+      "@earendil-works/pi-mcp": "mcp",
+      "@earendil-works/pi-telemetry": "telemetry"
+    },
+    "entrypoints": ["dist/bun/cli.js", "dist/utils/image-resize-worker.js", "dist/extensions/codemode/worker.js"]
+  }
+}

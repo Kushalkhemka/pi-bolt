@@ -1,148 +1,98 @@
 <p align="center">
-  <a href="https://pi.dev">
-    <img alt="pi logo" src="https://pi.dev/logo-auto.svg" width="128">
-  </a>
+  <img src="assets/pi-bolt.svg" alt="Pi-Bolt logo" width="128" height="128">
 </p>
 <p align="center">
-  <a href="https://discord.com/invite/3cU7Bz4UPx"><img alt="Discord" src="https://img.shields.io/badge/discord-community-5865F2?style=flat-square&logo=discord&logoColor=white" /></a>
-  <a href="https://www.npmjs.com/package/@earendil-works/pi-coding-agent"><img alt="npm" src="https://img.shields.io/npm/v/@earendil-works/pi-coding-agent?style=flat-square" /></a>
+  <a href="https://github.com/Kushalkhemka/pi-bolt/releases/tag/pi-bolt-v1.0.0-m5.1"><img alt="Pi 1.0 runtime" src="https://img.shields.io/badge/Pi-1.0.0-111827?style=flat-square"></a>
+  <img alt="Apple M5" src="https://img.shields.io/badge/Apple-M5-111827?style=flat-square">
+  <img alt="Unsigned prerelease" src="https://img.shields.io/badge/release-unsigned_candidate-fbbf24?style=flat-square">
+  <a href="https://github.com/Kushalkhemka/pi-bolt/actions/workflows/source-ci.yml"><img alt="Source checks" src="https://github.com/Kushalkhemka/pi-bolt/actions/workflows/source-ci.yml/badge.svg"></a>
 </p>
 
-> New issues and PRs from new contributors are auto-closed by default. Maintainers review auto-closed issues daily. See [CONTRIBUTING.md](CONTRIBUTING.md).
+# Pi-Bolt
 
-# Pi
+**Pi 1.0, powered by a native AOT + JavaScriptCore hybrid runtime.**
 
-Pi is a minimal, extensible agent harness that you can make your own.
+Pi-Bolt brings build-time machine code to [Pi](https://github.com/earendil-works/pi), the extensible coding agent. Covered functions start in native code; dynamic JavaScript retains JSC's interpreter and JIT. The complete package runs without installing Node, Bun or npm.
 
-Adapt Pi to your workflows, not the other way around. Customize Pi with [extensions](packages/coding-agent/docs/extensions.md), [skills](packages/coding-agent/docs/skills.md), [prompt templates](packages/coding-agent/docs/prompt-templates.md), and [themes](packages/coding-agent/docs/themes.md). Bundle them as [Pi packages](packages/coding-agent/docs/packages.md) and share via npm or git.
-
-Pi ships with powerful defaults but skips features like sub-agents and plan mode. Ask Pi to build what you want, or install a package that does it your way.
-
-Use Pi [interactively](packages/coding-agent/docs/usage.md), automate it in [print or JSON mode](packages/coding-agent/docs/cli.md), control it over [RPC](packages/coding-agent/docs/rpc.md), or build apps with the [Pi TypeScript SDK](packages/coding-agent/docs/sdk.md). See [OpenClaw](https://github.com/OpenClaw/OpenClaw) for a real-world integration.
+**Current release:** unsigned M5 candidate. Requires **Apple M5 and macOS 27+**; tested on the base M5. M4, earlier macOS and Linux are outside this package's support contract. Signing, notarization and broader production validation remain pending.
 
 ## Getting started
 
-Install the command-line interface:
+Download and verify the pinned release, then install it into your user directory:
 
 ```bash
-curl -fsSL https://pi.dev/install.sh | sh
+mkdir -p pi-bolt-download && cd pi-bolt-download
+release="https://github.com/Kushalkhemka/pi-bolt/releases/download/pi-bolt-v1.0.0-m5.1"
+curl -fLO "$release/pi-bolt-m5-1.0.0-m5.1.tar.gz"
+curl -fLO "$release/install.sh"
+curl -fLO "$release/SHA256SUMS"
+shasum -a 256 --check SHA256SUMS --ignore-missing
+
+bash install.sh \
+  --archive "$PWD/pi-bolt-m5-1.0.0-m5.1.tar.gz" \
+  --sha256 78bf22e8007f65be7f71098f81bdc67c811d66faa032150e20bcb843ca0dbac9 \
+  --allow-unsigned
 ```
 
-On Windows:
-
-```shell
-powershell -c "irm https://pi.dev/install.ps1 | iex"
-```
-
-Alternatively, install directly with npm:
-
-```bash
-npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-```
-
-Pi requires Node.js 22.19 or newer. The macOS, Linux, and Windows installers can install it if needed. Pi does not require dependency lifecycle scripts for a normal npm installation.
-
-Start Pi in the directory where you want it to work:
+Start it in your project directory:
 
 ```bash
 cd /path/to/project
-pi
+"$HOME/.local/pi-bolt/bin/pi-bolt"
 ```
 
-For a built-in AI provider, run `/login` inside Pi to connect a subscription or API key. Then give Pi a task.
+Run `/login` inside Pi to connect a provider. Your normal Pi settings, sessions, extensions, skills and themes remain available. `pi-bolt` uses a separate command name so it can coexist with your existing `pi` installation.
 
-See the [documentation](https://pi.dev/docs/latest) for full setup and usage instructions, or [visit pi.dev](https://pi.dev) for demos.
+An unsigned download may be blocked by Gatekeeper. The installer does not remove quarantine or change macOS security settings. If blocked, [build from source](docs/BUILD.md) or wait for a signed release. See [install, update and rollback](docs/INSTALL.md).
 
-## Packages
-
-This monorepo contains the Pi CLI and its supporting libraries.
-
-| Package | Description |
-|---------|-------------|
-| **[@earendil-works/chord](packages/chord)** | Standalone application-composition runtime for services, replicated state, RPC, and plugins |
-| **[@earendil-works/pi-telemetry](packages/telemetry)** | Vendor-neutral telemetry contracts, reference adapter, conformance tests, and typed schemas |
-| **[@earendil-works/pi-ai](packages/ai)** | Unified multi-provider LLM API (OpenAI, Anthropic, Google, etc.) |
-| **[@earendil-works/pi-durable](packages/durable)** | Durable conversation, task, and document runtime |
-| **[@earendil-works/pi-agent-core](packages/agent)** | Agent runtime with tool calling and state management |
-| **[@earendil-works/pi-coding-agent](packages/coding-agent)** | Interactive coding agent CLI |
-| **[@earendil-works/pi-tui](packages/tui)** | Terminal UI library with differential rendering |
-
-For Slack/chat automation and workflows see [earendil-works/pi-chat](https://github.com/earendil-works/pi-chat).
-
-## Permissions & Containerization
-
-Pi does not include a built-in permission system for restricting filesystem, process, network, or credential access. By default, it runs with the permissions of the user and process that launched it.
-
-If you need stronger boundaries, containerize or sandbox Pi. See [packages/coding-agent/docs/containerization.md](packages/coding-agent/docs/containerization.md) for three patterns:
-
-- **Gondolin extension**: keep `pi` and provider auth on the host while routing built-in tools and `!` commands into a local Linux micro-VM.
-- **Plain Docker**: run the whole `pi` process in a local container for simple isolation.
-- **OpenShell**: run the whole `pi` process in a policy-controlled sandbox.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and [AGENTS.md](AGENTS.md) for project-specific rules (for both humans and agents).  Longer term plans for Pi can also be found in [RFCs](https://rfc.earendil.com/keyword/pi/).
-
-## Development
+## Runtime options
 
 ```bash
-npm install --ignore-scripts  # Install all dependencies without running lifecycle scripts
-npm run build         # Refresh model data, then build all packages
-npm run build:offline # Rebuild using existing model data without network access
-npm run check         # Lint, format, and type check
-./test.sh            # Run tests (skips LLM-dependent tests without API keys)
-./pi-test.sh         # Run pi from sources (can be run from any directory)
+# Default: lowest measured Pi-process CPU and physical footprint.
+"$HOME/.local/pi-bolt/bin/pi-bolt"
+
+# Optional: native functions can tier into JIT after 10,000 calls.
+"$HOME/.local/pi-bolt/bin/pi-bolt-tier10000"
+
+# Regular terminal layout; print and RPC modes use Pi's usual flags.
+"$HOME/.local/pi-bolt/bin/pi-bolt" --tui-mode regular
+"$HOME/.local/pi-bolt/bin/pi-bolt" --help
 ```
 
-## Building standalone binaries from release source
+The tiering policy improved sustained-session wall time against the default in the measured cohort, with higher CPU and memory. [How the hybrid works](docs/RUNTIME.md).
 
-GitHub releases include a versioned source archive covered by the release's `SHA256SUMS` file. Extract it and run the same build script used for the official standalone binaries:
+## Measured performance
 
-```bash
-VERSION="<release-version>"
-tar -xzf "pi-${VERSION}-source.tar.gz"
-cd "pi-${VERSION}"
-./scripts/build-binaries.sh --offline-model-data --platform linux-x64 --out "$PWD/out"
-```
+Installed public commands, **100 interactive turns**, median of eight paired randomized runs on one M5. Deterministic loopback streaming provider and real read tools:
 
-The archive includes release model data and native prebuilds. `--offline-model-data` uses that model data without refreshing provider catalogs. The script installs dependencies and builds the executable with its runtime assets; pass `--skip-install` if dependencies are already provided.
+| Runtime | Wall time | Pi-process CPU | Peak physical footprint |
+|---|---:|---:|---:|
+| **Pi-Bolt default** | 1,384 ms | **727 ms** | **91 MB** |
+| Pi-Bolt tier10000 | **1,296 ms** | 787 ms | 122 MB |
+| Stable Bun bytecode + JIT, GC2 | 1,365 ms | 1,166 ms | 194 MB |
+| Published Pi on Node | 2,302 ms | 1,423 ms | 288 MB |
 
-## Supply-chain hardening
+The default reduced measured CPU by **37.7%** and peak footprint by **52.9%** against the stable Bun control. A wall-time win over stable Bun was **not established**: confidence intervals cross zero. CPU excludes helper subprocesses. These are Pi workload results, not a universal runtime ranking. [Method, all cohorts and confidence intervals](docs/M5-PACKAGED-BENCHMARKS.md).
 
-We treat npm dependency changes as reviewed code changes.
+## Verification
 
-- Direct external dependencies are pinned to exact versions. Internal workspace packages remain version-ranged.
-- `.npmrc` sets `save-exact=true` and `min-release-age=2` to avoid same-day dependency releases during npm resolution.
-- `package-lock.json` is the dependency ground truth. Pre-commit blocks accidental lockfile commits unless `PI_ALLOW_LOCKFILE_CHANGE=1` is set.
-- `npm run check` verifies pinned direct deps, native TypeScript import compatibility, and the generated coding-agent shrinkwrap.
-- The published CLI package includes `packages/coding-agent/npm-shrinkwrap.json`, generated from the root lockfile, to pin transitive deps for npm users.
-- Release smoke tests use `npm run release:local` to build, pack, and create isolated npm and Bun installs outside the repo before tagging a release.
-- Local release installs, documented npm installs, and `pi update --self` use `--ignore-scripts` where supported.
-- CI installs with `npm ci --ignore-scripts`, and a scheduled GitHub workflow runs `npm audit --omit=dev` plus `npm audit signatures --omit=dev`.
-- Shrinkwrap generation has an explicit allowlist for dependency lifecycle scripts; new lifecycle-script deps fail checks until reviewed.
+Both runtime policies and terminal layouts passed **120 bounded CLI assertions**, including RPC, session restoration, extensions, streamed tool turns, cancellation, image resizing and worker cleanup. Packaging and installation passed **32 tests** plus two source regression tests. The installed benchmark passed 64 measured sessions and 16 warmups.
 
-## Share your OSS coding agent sessions
+[Public validation evidence](docs/VALIDATION.md) · [Candidate verification](docs/M5-UNSIGNED-CANDIDATE.md) · [Release process](native-aot/release/README.md)
 
-If you use Pi or other coding agents for open source work, please share your sessions.
+## Source and packages
 
-Public OSS session data helps improve coding agents with real-world tasks, tool use, failures, and fixes instead of toy benchmarks.
+This is a public fork of Pi, with its source and history preserved. The shipped runtime is pinned to **Pi 1.0.0** through its isolated [npm lock](native-aot/pi-1.0-runtime/package-lock.json).
 
-For the full explanation, see [this post on X](https://x.com/badlogicgames/status/2037811643774652911).
+| Component | Location |
+|---|---|
+| Pi coding agent and libraries | [Upstream packages](UPSTREAM.md#packages) |
+| Native runtime, guarded transforms and engine patches | [native-aot](native-aot) |
+| Build instructions | [Build guide](docs/BUILD.md) |
+| Source and relinking companion | [Release assets](https://github.com/Kushalkhemka/pi-bolt/releases/tag/pi-bolt-v1.0.0-m5.1) |
 
-To publish sessions, use [`badlogic/pi-share-hf`](https://github.com/badlogic/pi-share-hf). Read its README.md for setup instructions. All you need is a Hugging Face account, the Hugging Face CLI, and `pi-share-hf`.
-
-You can also watch [this video](https://x.com/badlogicgames/status/2041151967695634619), where I show how I publish my `pi-mono` sessions.
-
-I regularly publish my own `pi-mono` work sessions here:
-
-- [badlogicgames/pi-mono on Hugging Face](https://huggingface.co/datasets/badlogicgames/pi-mono)
+Pi's SDK, provider, extension and package documentation is available in [packages/coding-agent/docs](packages/coding-agent/docs). Runtime archives are distributed through GitHub Releases; this project does not republish upstream npm packages under the `@earendil-works` namespace.
 
 ## License
 
-MIT
-
-<p align="center">
-  <a href="https://pi.dev">pi.dev</a> domain graciously donated by
-  <br /><br />
-  <a href="https://exe.dev"><img src="packages/coding-agent/docs/images/exy.png" alt="Exy mascot" width="48" /><br />exe.dev</a>
-</p>
+Upstream Pi retains its [MIT license](LICENSE). Original Pi-Bolt runtime integration, packaging and logo are [Apache-2.0](LICENSES/Apache-2.0.txt). Bun, JavaScriptCore/WebKit and bundled dependencies retain their original licenses and notices. See [NOTICE](NOTICE) and the [source/relink delivery notes](native-aot/release/license-review.md).

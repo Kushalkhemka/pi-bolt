@@ -1,0 +1,63 @@
+name: Validate M5 unsigned candidate
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Candidate version, e.g. 1.0.0-m5.1
+        required: true
+        default: 1.0.0-m5.1
+permissions:
+  contents: read
+jobs:
+  candidate:
+    # This workflow never runs untrusted PRs on a native/self-hosted runner.
+    runs-on: [self-hosted, macOS, ARM64, m5, macos27]
+    environment: m5-candidate
+    timeout-minutes: 40
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      PI_BOLT_ARTIFACT_DIR: ${{ vars.PI_BOLT_ARTIFACT_DIR }}
+      PI_BOLT_SOURCE_WORKSPACE: ${{ vars.PI_BOLT_SOURCE_WORKSPACE }}
+      PI_BOLT_TOOL_CACHE: ${{ vars.PI_BOLT_TOOL_CACHE }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check trusted runner inputs
+        run: |
+          test "$(uname -m)" = arm64
+          test "$(sysctl -n machdep.cpu.brand_string)" = 'Apple M5'
+          test -n "$PI_BOLT_ARTIFACT_DIR"
+          test -n "$PI_BOLT_SOURCE_WORKSPACE"
+          test -x "$PI_BOLT_TOOL_CACHE/fd"
+          test -x "$PI_BOLT_TOOL_CACHE/rg"
+          python3 -c 'import sys; assert sys.version_info >= (3, 12), "Python 3.12+ is required"; print(sys.version)'
+      - name: Prepare and validate relocated package
+        run: |
+          mkdir "$RUNNER_TEMP/Pi Bolt Candidate"
+          package="$RUNNER_TEMP/Pi Bolt Candidate/pi-bolt-m5-$RELEASE_VERSION"
+          python3 native-aot/release/package.py build --version "$RELEASE_VERSION" \
+            --artifact "$PI_BOLT_ARTIFACT_DIR" --output "$package" \
+            --bun-source "$PI_BOLT_SOURCE_WORKSPACE/native-aot/sources/bun" \
+            --webkit-source "$PI_BOLT_SOURCE_WORKSPACE/native-aot/sources/WebKit" \
+            --pi-source "$PI_BOLT_SOURCE_WORKSPACE/native-aot/sources/pi-v1.0.0"
+          python3 native-aot/release/acceptance.py --package "$package" \
+            --deny-source-root "$PI_BOLT_SOURCE_WORKSPACE" \
+            --tool-cache "$PI_BOLT_TOOL_CACHE" \
+            --output "$RUNNER_TEMP/Pi Bolt Candidate/acceptance.json"
+          python3 native-aot/release/audit.py --package "$package" \
+            --receipt "$RUNNER_TEMP/Pi Bolt Candidate/acceptance.json" \
+            --output "$RUNNER_TEMP/Pi Bolt Candidate/audit.json"
+          python3 native-aot/release/record-acceptance.py --package "$package" \
+            --receipt "$RUNNER_TEMP/Pi Bolt Candidate/acceptance.json" \
+            --audit "$RUNNER_TEMP/Pi Bolt Candidate/audit.json"
+          python3 native-aot/release/package.py archive "$package" \
+            --output "$RUNNER_TEMP/Pi Bolt Candidate/pi-bolt-m5-$RELEASE_VERSION.tar.gz" \
+            > "$RUNNER_TEMP/Pi Bolt Candidate/ARCHIVE-SHA256.txt"
+          python3 -m unittest discover -s native-aot/release/tests -v
+      - name: Retain candidate and acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pi-bolt-m5-unsigned-candidate
+          path: ${{ runner.temp }}/Pi Bolt Candidate/
+          if-no-files-found: error
+# No GitHub Release, tag, signing or publication step. Review results first.
