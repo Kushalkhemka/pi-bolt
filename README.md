@@ -89,7 +89,7 @@ This is a public fork of Pi, with its source and history preserved. The shipped 
 | Pi coding agent and libraries | [Upstream packages](UPSTREAM.md#packages) |
 | Native runtime, guarded transforms and engine patches | [native-aot](native-aot) |
 | Build instructions | [Build guide](docs/BUILD.md) |
-| Source and relinking companion | [Release assets](https://github.com/Kushalkhemka/pi-bolt/releases/tag/pi-bolt-v1.0.0-m5.1) |
+| Source and relinking companion | [Source/object delivery guide](docs/SOURCE-RELINK.md) |
 
 Pi's SDK, provider, extension and package documentation is available in [packages/coding-agent/docs](packages/coding-agent/docs). Runtime archives are distributed through GitHub Releases; this project does not republish upstream npm packages under the `@earendil-works` namespace.
 
