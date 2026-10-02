@@ -92,6 +92,6 @@ Use `--deny-source-root /absolute/source/checkout` for acceptance after copying 
 
 ## GitHub
 
-Run `python3 native-aot/release/source-export.py --output /absolute/fresh/github-source` to create a clean source tree without npm trees, engine checkouts, executables, caches, personal settings or research logs. Initialize your repository from that export. Source CI runs packaging/Photon guard tests. Native validation is a manual workflow on a trusted self-hosted M5/macOS27 runner; it never runs pull-request code on that runner or publishes automatically.
+This repository preserves Pi's upstream history. Use `python3 native-aot/release/source-export.py --output /absolute/fresh/source-staging` for an isolated inspection or release-staging tree without npm trees, engine checkouts, executables, caches, personal settings or research logs. The export does not replace this fork. Source CI runs packaging/Photon guard tests. Native validation is a manual workflow on a trusted self-hosted M5/macOS27 runner; it never runs pull-request code on that runner or publishes automatically.
 
 Original Pi-Bolt packaging/integration code is **Apache-2.0** under `LICENSES/Apache-2.0.txt`; upstream Pi retains its root MIT license. Upstream Bun, JavaScriptCore/WebKit, Pi, Wasm and native dependencies retain their original licenses. Review [NOTICE](../NOTICE), preserved notices and source/relink requirements before publishing binary assets. GitHub prerelease publication does not promote this candidate to production.

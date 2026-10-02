@@ -30,6 +30,20 @@ python3 relink-runtime.py \
 
 The kit ships application objects, Rust rlibs and native dependency objects; it does not redistribute Apple's SDK. ABI-changing library/header changes may require rebuilding Bun bindings and application objects from source. The included README documents the source-build route and required pinned dependencies.
 
+The release's `RELINK-VALIDATION.json` records a successful cold ThinLTO relink from the copied kit, using copied compatible WebKit archives. The fresh compiler reported Bun 1.4.3 and passed all 14 assertion groups in each of four linked-backend fixture modes. This check did not rebuild all sources or test semantically modified WebKit libraries.
+
 After modifying the runtime, regenerate **both** Pi executable and AOT sidecar using the included `pi.py`, `build-pi.js`, Pi1.0 npm inputs and workload profile. An old sidecar must not be reused with a modified runtime. Run the provided native, worker and CLI checks against the regenerated pair.
 
 Successful relinking is technical evidence. It does not establish a full clean source rebuild, arbitrary ABI compatibility, legal clearance, signing/notarization or a production performance guarantee. The frozen candidate manifest retains its original prepublication gate state; this companion is delivered separately. Original file-level BSD/Library GPL terms apply to WebKit, alongside the separately preserved licenses of other components.
+
+## Prepare a matching companion
+
+Maintainers with the exact source trees and build objects can export a fresh companion with:
+
+```bash
+python3 native-aot/release/prepare-companion.py \
+  --package /absolute/validated/pi-bolt-m5-1.0.0-m5.1 \
+  --output /absolute/fresh/companion
+```
+
+The exporter verifies pins and build inputs before copying. It preserves original component licenses, records dated source notices separately, and records path redactions in optional generated reference evidence. Review the resulting source/object archives and run the relocated relink checks before publishing them.
