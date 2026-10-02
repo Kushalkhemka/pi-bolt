@@ -1,0 +1,164 @@
+{
+  "archives": [
+    {
+      "bytes": 719717091,
+      "file": "pi-bolt-m5-source-1.0.0-m5.1.tar.gz",
+      "sha256": "e9d9bba6577291a1a1c48960abd25e7afb8fd0a4ade87fa2cd46b8a2df49e146"
+    },
+    {
+      "bytes": 213294780,
+      "file": "pi-bolt-m5-relink-1.0.0-m5.1.tar.gz",
+      "sha256": "3dd8e2fc38037384178f0320b97a55cb6f884b4e3b16e12b864e995c288cf549"
+    }
+  ],
+  "complete": true,
+  "date": "2026-10-02",
+  "link": {
+    "input_bytes": 494757024,
+    "inputs": 1327,
+    "link_exit_code": 0,
+    "llvm": "23.1.2",
+    "original_compiler_sha256": "8f212e04300c762ef712a515dfa9a5f478a5600cef5333038991cce2c4a073d5",
+    "relinked_runtime_bytes": 85855064,
+    "relinked_runtime_sha256": "c1cab687b8aa2a374de5560f3818f79b7bd7071770622a51c141627e34ba99fa",
+    "replaced_archives": {
+      "libJavaScriptCore.a": {
+        "bytes": 128987288,
+        "sha256": "518a2f914a72f8469e9f8a3f0f827edf791033d5897cdd6b0fb6aa6b6afd59d4"
+      },
+      "libWTF.a": {
+        "bytes": 4848536,
+        "sha256": "8d4a74811cf20fea5de9a85464802ce11b770f506e8509ddde29de2e347cfc51"
+      },
+      "libbmalloc.a": {
+        "bytes": 574320,
+        "sha256": "1589b84c5ae2cc8ab49fb728792614875eb764b3000af438989519aad42084b0"
+      }
+    },
+    "replacement_archive_contents_identical_to_original": true,
+    "replacement_webkit_directory_used": true,
+    "target": "macOS ARM64, M5 profile, minimum macOS27",
+    "version": "1.4.3",
+    "version_exit_code": 0
+  },
+  "linked_fixture": {
+    "executable_sha256": "f5a89ac250bd17923f4b6604f2101f5da049fc02e5bdc7e5618b9bc65133d80f",
+    "fixture_sha256": "168be62fce664d1da8e3660a345089e7f34c24c2a4aa2646e41f2a795342d2c3",
+    "image_sha256": "a7e5874cee50d96ddbd502ac76a73ed3221c1c85683210845c716e108dd1bb55",
+    "runtime_sha256": "c1cab687b8aa2a374de5560f3818f79b7bd7071770622a51c141627e34ba99fa"
+  },
+  "modes": {
+    "hybrid": {
+      "mapped_image": true,
+      "passed": true,
+      "selected_bun_builtin_sites": 27,
+      "selected_jsc_builtin_sites": 33,
+      "selected_native_sites": 647,
+      "semantic_assertion_groups": {
+        "builtin_validation": true,
+        "bun_builtin_validation": true,
+        "call_semantics_validation": true,
+        "clone": true,
+        "closures": true,
+        "constructors": true,
+        "dynamic": true,
+        "error_finalization": true,
+        "exceptions": true,
+        "gc": true,
+        "http": true,
+        "regex": true,
+        "stream": true,
+        "worker_builtin_validation": true
+      },
+      "stderr_sha256": "000ec663cd05d23dc6e4ddccbd6e8b0ff29da832b26c2d63d22c734d3eb3dae1"
+    },
+    "interpreter": {
+      "mapped_image": false,
+      "passed": true,
+      "selected_bun_builtin_sites": 0,
+      "selected_jsc_builtin_sites": 0,
+      "selected_native_sites": 0,
+      "semantic_assertion_groups": {
+        "builtin_validation": true,
+        "bun_builtin_validation": true,
+        "call_semantics_validation": true,
+        "clone": true,
+        "closures": true,
+        "constructors": true,
+        "dynamic": true,
+        "error_finalization": true,
+        "exceptions": true,
+        "gc": true,
+        "http": true,
+        "regex": true,
+        "stream": true,
+        "worker_builtin_validation": true
+      },
+      "stderr_sha256": "4b65cb422546f7b101ef53dd9d1a50bcc5739897258bf1dca0695a6549f7b238"
+    },
+    "jit": {
+      "mapped_image": false,
+      "passed": true,
+      "selected_bun_builtin_sites": 0,
+      "selected_jsc_builtin_sites": 0,
+      "selected_native_sites": 0,
+      "semantic_assertion_groups": {
+        "builtin_validation": true,
+        "bun_builtin_validation": true,
+        "call_semantics_validation": true,
+        "clone": true,
+        "closures": true,
+        "constructors": true,
+        "dynamic": true,
+        "error_finalization": true,
+        "exceptions": true,
+        "gc": true,
+        "http": true,
+        "regex": true,
+        "stream": true,
+        "worker_builtin_validation": true
+      },
+      "stderr_sha256": "4b65cb422546f7b101ef53dd9d1a50bcc5739897258bf1dca0695a6549f7b238"
+    },
+    "native": {
+      "mapped_image": true,
+      "passed": true,
+      "selected_bun_builtin_sites": 27,
+      "selected_jsc_builtin_sites": 33,
+      "selected_native_sites": 647,
+      "semantic_assertion_groups": {
+        "builtin_validation": true,
+        "bun_builtin_validation": true,
+        "call_semantics_validation": true,
+        "clone": true,
+        "closures": true,
+        "constructors": true,
+        "dynamic": true,
+        "error_finalization": true,
+        "exceptions": true,
+        "gc": true,
+        "http": true,
+        "regex": true,
+        "stream": true,
+        "worker_builtin_validation": true
+      },
+      "stderr_sha256": "a6ad191f0c07946d39e1faea2e432ecd9fa4839413a316bd6dfb7fa03fcb8745"
+    }
+  },
+  "native_proof_limit": "Selected named sidecar addresses plus asserted function semantics; counts are not executed edges or full coverage",
+  "preparation_history": [
+    "Initial source export stopped before archives at a directory symlink classification bug; fixed producer, preserved incomplete v1 staging.",
+    "Initial completed source snapshot omitted the old linked-fixture validation profile; added exact recorded profile, reran four-mode fixture from exported source and refreshed source archive.",
+    "First refresh was stopped before completion to redact optional build-user path reference evidence; original inputs and objects were not edited.",
+    "Actual relink and four-mode fixture completed without failed attempts."
+  ],
+  "remaining_gates": [
+    "No full clean source rebuild of the exported snapshot has been run.",
+    "No semantically changed replacement WebKit library has been built/tested by this proof; ABI-changing modifications may require rebuilding application objects.",
+    "Source and notice delivery is technical evidence, not legal clearance.",
+    "Developer ID signing and notarization remain absent; distribution remains an unsigned prerelease.",
+    "No runtime performance measurements were taken for the reconstructed compiler."
+  ],
+  "schema": 1,
+  "scope": "Relocated copied-object relink and ordinary linked native fixture; not full source rebuild, semantically modified library test, bit-reproducible build, release certification or benchmark"
+}

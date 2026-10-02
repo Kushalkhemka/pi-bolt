@@ -30,7 +30,7 @@ python3 relink-runtime.py \
 
 The kit ships application objects, Rust rlibs and native dependency objects; it does not redistribute Apple's SDK. ABI-changing library/header changes may require rebuilding Bun bindings and application objects from source. The included README documents the source-build route and required pinned dependencies.
 
-The release's `RELINK-VALIDATION.json` records a successful cold ThinLTO relink from the copied kit, using copied compatible WebKit archives. The fresh compiler reported Bun 1.4.3 and passed all 14 assertion groups in each of four linked-backend fixture modes. This check did not rebuild all sources or test semantically modified WebKit libraries.
+The release's [RELINK-VALIDATION.json](RELINK-VALIDATION.json) records a successful cold ThinLTO relink from the copied kit, using copied compatible WebKit archives. The fresh compiler reported Bun 1.4.3 and passed all 14 assertion groups in each of four linked-backend fixture modes. This check did not rebuild all sources or test semantically modified WebKit libraries.
 
 After modifying the runtime, regenerate **both** Pi executable and AOT sidecar using the included `pi.py`, `build-pi.js`, Pi1.0 npm inputs and workload profile. An old sidecar must not be reused with a modified runtime. Run the provided native, worker and CLI checks against the regenerated pair.
 
